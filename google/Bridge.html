@@ -1,0 +1,11 @@
+<!doctype html><html><head><meta charset="utf-8"></head><body><script>
+const channel=<?= JSON.stringify(channel) ?>,allowedOrigin=<?= JSON.stringify(origin) ?>;
+const send=message=>window.top.postMessage({...message,channel},allowedOrigin);
+window.addEventListener('message',event=>{
+ if(event.origin!==allowedOrigin||event.source!==window.top)return;
+ const m=event.data;if(!m||m.channel!==channel||m.type!=='clan-request'||typeof m.id!=='string')return;
+ if(!['list','save','photo'].includes(m.method))return;
+ google.script.run.withSuccessHandler(result=>send({type:'clan-response',id:m.id,result})).withFailureHandler(()=>send({type:'clan-response',id:m.id,result:{ok:false,error:'구글 저장 연결에 실패했습니다. 잠시 후 다시 시도해주세요.'}})).clanRpc(m.method,m.payload||{});
+});
+send({type:'clan-ready'});
+</script></body></html>

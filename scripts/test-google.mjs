@@ -1,0 +1,34 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+import crypto from 'node:crypto';
+const properties=new Map(),data=[],files=new Map();let released=0,createFailure=false;
+const sheet={getLastRow:()=>data.length,appendRow:r=>data.push([...r]),setName(){},setFrozenRows(){},getRange(row,col,count,width){return {getValues:()=>data.slice(row-1,row-1+count).map(r=>r.slice(col-1,col-1+width)),setValues(values){values.forEach((r,i)=>r.forEach((v,j)=>data[row-1+i][col-1+j]=v));}};}};
+const folder={getId:()=> 'folder',createFile(blob){if(createFailure)throw Error('storage failed');const id=crypto.randomUUID(),f={getId:()=>id,setTrashed:()=>{f.trashed=true;},getBlob:()=>({getBytes:()=>blob.bytes,getContentType:()=>blob.type}),getParents:()=>{let used=false;return {hasNext:()=>!used,next:()=>{used=true;return folder;}};}};files.set(id,f);return f;}};
+const context={console:{log(){},error(){}},Utilities:{getUuid:()=>crypto.randomUUID(),computeHmacSha256Signature:(value,key)=>[...crypto.createHmac('sha256',key).update(value).digest()],base64Decode:s=>[...Buffer.from(s,'base64')],base64Encode:b=>Buffer.from(b).toString('base64'),newBlob:(bytes,type,name)=>({bytes,type,name})},PropertiesService:{getScriptProperties:()=>({getProperty:k=>properties.get(k)||null,setProperty:(k,v)=>properties.set(k,v)})},LockService:{getScriptLock:()=>({waitLock(){},tryLock:()=>true,releaseLock(){released++;}})},SpreadsheetApp:{create:()=>({getId:()=> 'sheet',getSheets:()=>[sheet]}),openById:()=>({getSheetByName:()=>sheet}),flush(){}},DriveApp:{createFolder:()=>folder,getFolderById:()=>folder,getFileById:id=>{if(!files.has(id))throw Error('missing file');return files.get(id);}}};
+vm.createContext(context);vm.runInContext(fs.readFileSync('google/Code.gs','utf8'),context);context.setup_();const key=properties.get('CLAN_KEY');
+const invoke=(method,payload={})=>JSON.parse(JSON.stringify(context.clanRpc(method,{...payload,accessKey:key})));
+const inventory=Object.fromEntries(['skill','egg','mount','potion'].map(g=>[g,{amount:'',level:'',progress:'',target:'',selected:'',extra:'0'}]));inventory.skill.amount='35.8k';inventory.egg.selected='57';inventory.egg.extra='3';inventory.potion.amount='835';
+assert.equal(context.clanRpc('list',{accessKey:'wrong'}).ok,false);
+assert.equal(invoke('list').records.length,0);
+const jpeg=Buffer.from([255,216,255,224,0,0,0,0,0,0,0,0]).toString('base64');
+const payload={nickname:'=SUM(A1:A2)',password:'safe-password',inventory,photos:[{kind:'skill',base64:jpeg}]};
+let saved=invoke('save',payload);assert.equal(saved.ok,true);const first=saved.photos.skill;
+assert.equal(data[1][0],'"=SUM(A1:A2)"'); // prevents spreadsheet formula evaluation
+const rows=invoke('list').records;assert.equal(rows.length,1);assert.equal(rows[0].nickname,payload.nickname);assert.equal(rows[0].details.skill.amount,'35.8k');assert.equal(rows[0].details.egg.extra,'3');assert.equal('password_hash' in rows[0],false);assert.equal(JSON.stringify(rows).includes(data[1][1]),false);
+assert.equal(invoke('photo',{id:first}).base64,jpeg);assert.equal(invoke('photo',{id:'not-a-clan-photo'}).ok,false);
+assert.equal(invoke('save',{...payload,password:'incorrect'}).ok,false);assert.equal(data[1][6],1);assert.equal(files.size,1);
+saved=invoke('save',{...payload,photos:[]});assert.equal(saved.photos.skill,first);assert.equal(data[1][6],0);
+saved=invoke('save',payload);assert.equal(saved.ok,true);assert.notEqual(saved.photos.skill,first);assert.equal(files.get(first).trashed,true);
+const latest=saved.photos.skill;createFailure=true;assert.equal(invoke('save',payload).ok,false);assert.equal(invoke('list').records[0].photos.skill,latest);assert.equal(files.get(latest).trashed,undefined);createFailure=false;
+assert.equal(invoke('save',{...payload,photos:[{kind:'skill',base64:Buffer.alloc(12).toString('base64')}]}).ok,false);
+assert.equal(invoke('save',{...payload,inventory:{...inventory,skill:{...inventory.skill,amount:'-1'}}}).ok,false);
+for(let i=0;i<5;i++)assert.equal(invoke('save',{...payload,password:'incorrect'}).ok,false);assert.ok(Number(data[1][7])>Date.now());assert.equal(invoke('save',payload).ok,false);assert.ok(released>0);
+// Bridge rejects foreign origins/channels and routes only allowed methods.
+const listeners={},sent=[],calls=[];const top={postMessage:(m,o)=>sent.push({m,o})};const runner={withSuccessHandler(f){this.success=f;return this;},withFailureHandler(f){this.failure=f;return this;},clanRpc(method,payload){calls.push({method,payload});this.success({ok:true});}};
+const script=fs.readFileSync('google/Bridge.html','utf8').match(/<script>([\s\S]*?)<\/script>/)[1].replace('<?= JSON.stringify(channel) ?>',JSON.stringify('test-channel')).replace('<?= JSON.stringify(origin) ?>',JSON.stringify('https://gptjyp-ops.github.io'));
+const b={window:{top,addEventListener:(k,f)=>listeners[k]=f},google:{script:{run:runner}}};vm.runInNewContext(script,b);assert.equal(sent[0].m.type,'clan-ready');
+const message={type:'clan-request',channel:'test-channel',id:'1',method:'list',payload:{accessKey:key}};
+listeners.message({origin:'https://evil.example',source:top,data:message});listeners.message({origin:'https://gptjyp-ops.github.io',source:{},data:message});assert.equal(calls.length,0);
+listeners.message({origin:'https://gptjyp-ops.github.io',source:top,data:message});assert.equal(calls.length,1);assert.equal(sent[1].m.type,'clan-response');
+console.log('Google backend and bridge checks passed. Live Google deployment still requires account authorization.');
