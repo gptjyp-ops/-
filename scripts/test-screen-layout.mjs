@@ -33,4 +33,9 @@ for(const kind of ['eggMerge','mountMerge']){
  assert.equal(first.width,14);assert.equal(shifted.y-first.y,11);
  assert.equal(locateRegions(mergeImage(11),kind)[0].field,'selected');
 }
-console.log('Screen landmarks: shifted header, added skill row, false icon, merge count and missing anchors passed');
+const statusSource=ts.transpileModule(fs.readFileSync('src/lib/summon-status.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext}}).outputText;
+const {maximumStatus}=await import('data:text/javascript;base64,'+Buffer.from(statusSource).toString('base64'));
+assert.deepEqual(maximumStatus('최대'),{level:'100',progress:'',target:''});
+assert.deepEqual(maximumStatus('Lv. 100\n최 대'),{level:'100',progress:'',target:''});
+for(const text of ['41/110','100','최대 5MB','최대치'])assert.deepEqual(maximumStatus(text),{});
+console.log('Screen landmarks and maximum summon level checks passed');
