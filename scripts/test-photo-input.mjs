@@ -1,0 +1,20 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import ts from 'typescript';
+const source=ts.transpileModule(fs.readFileSync('src/lib/photo-input.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText;
+const {normalizePhoto,imageFromTransfer,readScreenshot}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+const png=new File(['image'],'capture.png',{type:'image/png'});
+assert.equal(imageFromTransfer({files:[png],items:[]}),png);
+assert.equal(imageFromTransfer({files:[],items:[{kind:'file',getAsFile:()=>png}]}),png);
+assert.equal(imageFromTransfer({files:[],items:[{kind:'string'}]}),null);
+assert.equal(normalizePhoto(new File(['image'],'CAPTURE.PNG')).type,'image/png');
+assert.equal(normalizePhoto(new File(['image'],'capture.jpg',{type:'application/octet-stream'})).type,'image/jpeg');
+assert.equal(normalizePhoto(new File(['pdf'],'capture.png',{type:'application/pdf'})),null);
+function clipboard(value){Object.defineProperty(globalThis,'navigator',{value:{clipboard:value},configurable:true});}
+clipboard({read:async()=>[{types:['text/plain','image/png'],getType:async()=>new Blob(['image'],{type:'image/png'})}]});
+const capture=await readScreenshot();
+assert.equal(capture.name,'capture.png');assert.equal(capture.type,'image/png');assert.equal(await capture.text(),'image');
+clipboard({read:async()=>[]});await assert.rejects(readScreenshot(),/복사된 이미지가 없어요/);
+clipboard({read:async()=>{throw Error('Permission denied');}});await assert.rejects(readScreenshot(),/Ctrl\+V/);
+clipboard(undefined);await assert.rejects(readScreenshot(),/이 브라우저에서는/);
+console.log('Screenshot file, clipboard and text paste checks passed');
