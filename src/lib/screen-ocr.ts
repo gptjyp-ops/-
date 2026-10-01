@@ -11,7 +11,7 @@ export const regions:Record<PhotoKind,Region[]>={
  mountMerge:[{field:'selected',rect:[.105,.303,.034,.022],mode:'black'}],
  potion:[{field:'amount',rect:[.149,.133,.080,.021],mode:'yellow'}]
 };
-export function parseRead(field:Region['field'],text:string):Partial<Item>{const t=text.replace(/\s/g,'');if(field==='ratio'){const m=t.match(/^(\d+)\/(\d+)$/);return m&&Number(m[1])<=Number(m[2])?{progress:m[1],target:m[2]}:{};}
+export function parseRead(field:Region['field'],text:string):Partial<Item>{let t=text.replace(/\s/g,'');if(field==='amount'&&/^\d+,\d{1,2}[kKmMbB]$/.test(t))t=t.replace(',','.');if(field==='ratio'){const m=t.match(/^(\d+)\/(\d+)$/);return m&&Number(m[1])<=Number(m[2])?{progress:m[1],target:m[2]}:{};}
  if(field==='amount'){return parseNumber(t)!==null?{amount:t}:{};}
  return /^\d+$/.test(t)?{[field]:t}:{};
 }

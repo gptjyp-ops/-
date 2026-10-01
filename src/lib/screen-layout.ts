@@ -18,8 +18,8 @@ function components(p:Pixels,area:Box,test:(r:number,g:number,b:number)=>boolean
  }
  return boxes;
 }
-export function findLandmarks(p:Pixels,kind:PhotoKind):{amount?:Box;info?:Box;selected?:Box;amountMode?:'white'|'yellow'}{
- const w=p.width,h=p.height,result:{amount?:Box;info?:Box;selected?:Box;amountMode?:'white'|'yellow'}={};
+export function findLandmarks(p:Pixels,kind:PhotoKind):{amount?:Box;info?:Box;progressBar?:Box;selected?:Box;amountMode?:'white'|'yellow'}{
+ const w=p.width,h=p.height,result:{amount?:Box;info?:Box;progressBar?:Box;selected?:Box;amountMode?:'white'|'yellow'}={};
  if(kind==='eggMerge'||kind==='mountMerge'){
   const panels=components(p,{x:.05*w,y:.08*h,width:.90*w,height:.38*h},(r,g,b)=>Math.min(r,g,b)>170&&Math.max(r,g,b)<240&&Math.max(r,g,b)-Math.min(r,g,b)<25)
    .filter(b=>b.width>.60*w&&b.height>.20*w).sort((a,b)=>a.y-b.y);
@@ -39,6 +39,12 @@ export function findLandmarks(p:Pixels,kind:PhotoKind):{amount?:Box;info?:Box;se
   const circles=components(p,{x:.70*w,y:.43*h,width:.17*w,height:.44*h},(r,g,b)=>Math.max(r,g,b)<90,.60)
    .filter(b=>b.width>.025*w&&b.width<.075*w&&b.height/b.width>.8&&b.height/b.width<1.25);
   circles.sort((a,b)=>b.y-a.y);result.info=circles[0];
+  if(result.info){const info=result.info,cx=info.x+info.width/2,bottom=info.y+info.height;
+   const progressBars=components(p,{x:cx-.095*w,y:bottom+.015*w,width:.19*w,height:.105*w},(r,g,b)=>Math.max(r,g,b)<180,.15)
+    .filter(b=>b.width>.09*w&&b.width<.19*w&&b.height>.017*w&&b.height<.075*w&&b.width/b.height>2.1).sort((a,b)=>a.y-b.y);
+   result.progressBar=progressBars[0];
+  }
+
  }
  if(kind==='potion'){
   const digits=components(p,{x:.08*w,y:0,width:.32*w,height:.24*h},(r,g,b)=>r>150&&g>150&&b<140)
@@ -55,14 +61,15 @@ export function findLandmarks(p:Pixels,kind:PhotoKind):{amount?:Box;info?:Box;se
  }
  return result;
 }
-export type LocatedRegion={field:'amount'|'level'|'ratio'|'selected';rect:[number,number,number,number];mode:'white'|'black'|'yellow'|'mixed'|'raw'};
+export type LocatedRegion={field:'amount'|'level'|'ratio'|'selected';rect:[number,number,number,number];mode:'white'|'black'|'yellow'|'mixed'|'raw';alternativeRect?:[number,number,number,number]};
 export function locateRegions(p:Pixels,kind:PhotoKind):LocatedRegion[]{
  const landmarks=findLandmarks(p,kind),out:LocatedRegion[]=[],w=p.width;
  const rect=(x:number,y:number,width:number,height:number):LocatedRegion['rect']=>[x/w,y/p.height,width/w,height/p.height];
  if(landmarks.amount){const b=landmarks.amount,pad=kind==='potion'?2:.005*w;out.push({field:'amount',rect:rect(b.x-pad,b.y-pad,b.width+2*pad,b.height+2*pad),mode:kind==='potion'?(landmarks.amountMode||'yellow'):'white'});}
  if(landmarks.info){const b=landmarks.info,cx=b.x+b.width/2,bottom=b.y+b.height;
   out.push({field:'level',rect:rect(cx-.055*w,bottom+.003*w,.11*w,.035*w),mode:'black'});
-  out.push({field:'ratio',rect:rect(cx-.058*w,bottom+.044*w,.116*w,.023*w),mode:'mixed'});
+  const bar=landmarks.progressBar;
+  out.push({field:'ratio',rect:rect(cx-.058*w,bottom+.044*w,.116*w,.023*w),mode:'mixed',alternativeRect:bar?rect(bar.x-2,bar.y-1,bar.width+4,Math.min(bar.height,.034*w)+2):undefined});
  }
  if(landmarks.selected){const b=landmarks.selected,pad=.005*w;out.push({field:'selected',rect:rect(b.x-pad,b.y-pad,b.width+2*pad,b.height+2*pad),mode:'black'});}
  return out;
@@ -74,5 +81,6 @@ export function ratioCandidates(region:LocatedRegion):LocatedRegion[]{
  const [x,y,w,h]=region.rect,top=Math.max(0,y-h*.28);
  const expanded:LocatedRegion={...region,rect:[Math.max(0,x-.01),top,Math.min(w+.02,1-Math.max(0,x-.01)),Math.min(h*1.3,1-top)]};
  const taller:LocatedRegion={...expanded,rect:[expanded.rect[0],Math.max(0,y-h*.55),expanded.rect[2],Math.min(h*1.7,1-Math.max(0,y-h*.55))]};
- return [region,{...expanded,mode:'raw'},expanded,{...taller,mode:'white'},{...taller,mode:'raw'}];
+ const barCandidates:LocatedRegion[]=region.alternativeRect?[{...region,rect:region.alternativeRect,mode:'raw'},{...region,rect:region.alternativeRect}]:[];
+ return [region,...barCandidates,{...expanded,mode:'raw'},expanded,{...taller,mode:'white'},{...taller,mode:'raw'}];
 }
