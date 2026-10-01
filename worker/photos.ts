@@ -1,0 +1,2 @@
+import {storage} from './storage';
+export async function GET(_r:Request,{params}:{params:Promise<{key:string}>}){try{const {key}=await params;if(!/^[a-f0-9-]{36}$/.test(key))return new Response('Not found',{status:404});const o=await storage().bucket.get(key);if(!o)return new Response('Not found',{status:404});return new Response(o.body,{headers:{'Content-Type':o.httpMetadata?.contentType||'image/png','X-Content-Type-Options':'nosniff','Cache-Control':'private, max-age=300'}});}catch{return new Response('Unavailable',{status:503});}}

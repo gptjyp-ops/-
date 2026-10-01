@@ -1,0 +1,10 @@
+node_modules/
+dist/
+public/ocr/
+.env
+.env.*
+!.env.example
+.wrangler/
+*.tsbuildinfo
+
+node_modules

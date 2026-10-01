@@ -1,0 +1,3 @@
+import {createRequire} from 'node:module';import fs from 'node:fs';import path from 'node:path';
+const require=createRequire(import.meta.url);const tesseract=path.dirname(require.resolve('tesseract.js/package.json'));const core=path.dirname(createRequire(path.join(tesseract,'package.json')).resolve('tesseract.js-core/package.json'));const language=require('@tesseract.js-data/eng');
+fs.mkdirSync('public/ocr/lang',{recursive:true});fs.copyFileSync(path.join(tesseract,'dist/worker.min.js'),'public/ocr/worker.min.js');for(const file of fs.readdirSync(core))if(/lstm\.wasm(?:\.js)?$/.test(file))fs.copyFileSync(path.join(core,file),'public/ocr/'+file);fs.copyFileSync(path.join(language.langPath,'eng.traineddata.gz'),'public/ocr/lang/eng.traineddata.gz');
