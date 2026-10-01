@@ -18,8 +18,8 @@ function components(p:Pixels,area:Box,test:(r:number,g:number,b:number)=>boolean
  }
  return boxes;
 }
-export function findLandmarks(p:Pixels,kind:PhotoKind):{amount?:Box;info?:Box;selected?:Box}{
- const w=p.width,h=p.height,result:{amount?:Box;info?:Box;selected?:Box}={};
+export function findLandmarks(p:Pixels,kind:PhotoKind):{amount?:Box;info?:Box;selected?:Box;amountMode?:'white'|'yellow'}{
+ const w=p.width,h=p.height,result:{amount?:Box;info?:Box;selected?:Box;amountMode?:'white'|'yellow'}={};
  if(kind==='eggMerge'||kind==='mountMerge'){
   const panels=components(p,{x:.05*w,y:.08*h,width:.90*w,height:.38*h},(r,g,b)=>Math.min(r,g,b)>170&&Math.max(r,g,b)<240&&Math.max(r,g,b)-Math.min(r,g,b)<25)
    .filter(b=>b.width>.60*w&&b.height>.20*w).sort((a,b)=>a.y-b.y);
@@ -47,6 +47,11 @@ export function findLandmarks(p:Pixels,kind:PhotoKind):{amount?:Box;info?:Box;se
   for(const b of digits){const line=lines.find(a=>Math.abs((a.y+a.height/2)-(b.y+b.height/2))<.012*w&&b.x-(a.x+a.width)<.025*w);
    if(line){const bottom=Math.max(line.y+line.height,b.y+b.height);line.width=b.x+b.width-line.x;line.y=Math.min(line.y,b.y);line.height=bottom-line.y;}else lines.push({...b});}
   result.amount=lines.sort((a,b)=>a.y-b.y)[0];
+  const bars=components(p,{x:.025*w,y:0,width:.38*w,height:.24*h},(r,g,b)=>Math.min(r,g,b)>40&&Math.max(r,g,b)<185&&Math.max(r,g,b)-Math.min(r,g,b)<40)
+   .filter(b=>b.width>.09*w&&b.width<.35*w&&b.height>.018*w&&b.height<.075*w&&b.width/b.height>2.3).sort((a,b)=>a.y-b.y);
+  const bar=bars[1];
+  if(bar&&!result.amount){result.amount=bar;result.amountMode='white';}
+
  }
  return result;
 }
@@ -54,7 +59,7 @@ export type LocatedRegion={field:'amount'|'level'|'ratio'|'selected';rect:[numbe
 export function locateRegions(p:Pixels,kind:PhotoKind):LocatedRegion[]{
  const landmarks=findLandmarks(p,kind),out:LocatedRegion[]=[],w=p.width;
  const rect=(x:number,y:number,width:number,height:number):LocatedRegion['rect']=>[x/w,y/p.height,width/w,height/p.height];
- if(landmarks.amount){const b=landmarks.amount,pad=kind==='potion'?2:.005*w;out.push({field:'amount',rect:rect(b.x-pad,b.y-pad,b.width+2*pad,b.height+2*pad),mode:kind==='potion'?'yellow':'white'});}
+ if(landmarks.amount){const b=landmarks.amount,pad=kind==='potion'?2:.005*w;out.push({field:'amount',rect:rect(b.x-pad,b.y-pad,b.width+2*pad,b.height+2*pad),mode:kind==='potion'?(landmarks.amountMode||'yellow'):'white'});}
  if(landmarks.info){const b=landmarks.info,cx=b.x+b.width/2,bottom=b.y+b.height;
   out.push({field:'level',rect:rect(cx-.055*w,bottom+.003*w,.11*w,.035*w),mode:'black'});
   out.push({field:'ratio',rect:rect(cx-.058*w,bottom+.044*w,.116*w,.023*w),mode:'mixed'});
@@ -68,5 +73,6 @@ export function ratioCandidates(region:LocatedRegion):LocatedRegion[]{
  if(region.field!=='ratio')return [region];
  const [x,y,w,h]=region.rect,top=Math.max(0,y-h*.28);
  const expanded:LocatedRegion={...region,rect:[Math.max(0,x-.01),top,Math.min(w+.02,1-Math.max(0,x-.01)),Math.min(h*1.3,1-top)]};
- return [region,{...expanded,mode:'raw'},expanded];
+ const taller:LocatedRegion={...expanded,rect:[expanded.rect[0],Math.max(0,y-h*.55),expanded.rect[2],Math.min(h*1.7,1-Math.max(0,y-h*.55))]};
+ return [region,{...expanded,mode:'raw'},expanded,{...taller,mode:'white'},{...taller,mode:'raw'}];
 }

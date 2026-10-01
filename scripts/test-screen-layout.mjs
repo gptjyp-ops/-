@@ -55,3 +55,8 @@ function yellowGlyph(x,y,width=8,height=12){for(let row=y;row<y+height;row++)for
 for(const x of [120,130,140])yellowGlyph(x,3);
 for(const x of [100,114,128,142])yellowGlyph(x,150,12,14);
 assert.deepEqual(findLandmarks(potion,'potion').amount,{x:120,y:3,width:28,height:12});
+
+const whitePotion={width:400,height:870,data:new Uint8ClampedArray(400*870*4).fill(255)};
+for(const y0 of [20,65])for(let y=y0;y<y0+14;y++)for(let x=22;x<82;x++)whitePotion.data.set([100,100,100,255],(y*400+x)*4);
+assert.equal(findLandmarks(whitePotion,'potion').amount.y,65);
+assert.equal(locateRegions(whitePotion,'potion')[0].mode,'white');
