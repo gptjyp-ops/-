@@ -16,9 +16,9 @@ export function parseRead(field:Region['field'],text:string):Partial<Item>{const
  return /^\d+$/.test(t)?{[field]:t}:{};
 }
 export const groupFor=(kind:PhotoKind):Group=>kind.startsWith('egg')?'egg':kind.startsWith('mount')?'mount':kind as Group;
-export async function scanScreen(file:File,kind:PhotoKind,onProgress:(n:number)=>void){
+export async function scanScreen(file:File,kind:PhotoKind,onProgress:(n:number)=>void,fresh=false){
  const bitmap=await createImageBitmap(file);let worker:any,koreanWorker:any;const item:Partial<Item>={};const original:string[]=[];
- try{const {createWorker,PSM}=await import('tesseract.js');const options={workerPath:import.meta.env.BASE_URL+'ocr/worker.min.js',corePath:import.meta.env.BASE_URL+'ocr',langPath:import.meta.env.BASE_URL+'ocr/lang',workerBlobURL:false};worker=await createWorker('eng',1,options);
+ try{const {createWorker,PSM}=await import('tesseract.js');const options={workerPath:import.meta.env.BASE_URL+'ocr/worker.min.js',corePath:import.meta.env.BASE_URL+(fresh?'ocr/tesseract-core-lstm.wasm.js':'ocr'),cacheMethod:fresh?'none' as const:undefined,errorHandler:()=>{},langPath:import.meta.env.BASE_URL+'ocr/lang',workerBlobURL:false};worker=await createWorker('eng',1,options);
  const overview=document.createElement('canvas');overview.width=400;overview.height=Math.round(bitmap.height*400/bitmap.width);const overviewContext=overview.getContext('2d')!;overviewContext.drawImage(bitmap,0,0,overview.width,overview.height);
  const adaptive:Partial<Record<Region['field'],Region>>={};for(const r of locateRegions(overviewContext.getImageData(0,0,overview.width,overview.height),kind))adaptive[r.field]=r;
  for(let k=0;k<regions[kind].length;k++){
@@ -36,5 +36,5 @@ export async function scanScreen(file:File,kind:PhotoKind,onProgress:(n:number)=
   koreanWorker=await createWorker('kor',1,options);await koreanWorker.setParameters({tessedit_pageseg_mode:PSM.SPARSE_TEXT});const status=await koreanWorker.recognize(canvas);original.push(status.data.text.trim());Object.assign(item,maximumStatus(status.data.text));
  }
  onProgress(100);return {item,original};
- }finally{bitmap.close();await worker?.terminate();await koreanWorker?.terminate();}
+ }finally{bitmap.close();await worker?.terminate().catch(()=>{});await koreanWorker?.terminate().catch(()=>{});}
 }
