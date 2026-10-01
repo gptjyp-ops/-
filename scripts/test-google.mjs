@@ -27,7 +27,7 @@ for(let i=0;i<5;i++)assert.equal(invoke('save',{...payload,password:'incorrect'}
 // Bridge rejects foreign origins/channels and routes only allowed methods.
 const listeners={},sent=[],calls=[];const top={postMessage:(m,o)=>sent.push({m,o})};const runner={withSuccessHandler(f){this.success=f;return this;},withFailureHandler(f){this.failure=f;return this;},clanRpc(method,payload){calls.push({method,payload});this.success({ok:true});}};
 const script=fs.readFileSync('google/Bridge.html','utf8').match(/<script>([\s\S]*?)<\/script>/)[1].replace('<?= JSON.stringify(channel) ?>',JSON.stringify('test-channel')).replace('<?= JSON.stringify(origin) ?>',JSON.stringify('https://gptjyp-ops.github.io'));
-const b={window:{top,addEventListener:(k,f)=>listeners[k]=f},google:{script:{run:runner}}};vm.runInNewContext(script,b);assert.equal(sent[0].m.type,'clan-ready');
+const b={document:{body:{dataset:{channel:'test-channel',origin:'https://gptjyp-ops.github.io'}}},window:{top,addEventListener:(k,f)=>listeners[k]=f},google:{script:{run:runner}}};vm.runInNewContext(script,b);assert.equal(sent[0].m.type,'clan-ready');
 const message={type:'clan-request',channel:'test-channel',id:'1',method:'list',payload:{accessKey:key}};
 listeners.message({origin:'https://evil.example',source:top,data:message});listeners.message({origin:'https://gptjyp-ops.github.io',source:{},data:message});assert.equal(calls.length,0);
 listeners.message({origin:'https://gptjyp-ops.github.io',source:top,data:message});assert.equal(calls.length,1);assert.equal(sent[1].m.type,'clan-response');
