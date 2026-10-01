@@ -1,8 +1,8 @@
 import {parseNumber} from './ocr';
 import type {PhotoKind,Group,Item} from './inventory';
-import {locateRegions} from './screen-layout';
+import {locateRegions,ratioCandidates} from './screen-layout';
 import {maximumStatus} from './summon-status';
-export type Region={field:'amount'|'level'|'ratio'|'selected';rect:[number,number,number,number];mode:'white'|'black'|'yellow'|'mixed'};
+export type Region={field:'amount'|'level'|'ratio'|'selected';rect:[number,number,number,number];mode:'white'|'black'|'yellow'|'mixed'|'raw'};
 export const regions:Record<PhotoKind,Region[]>={
  skill:[{field:'amount',rect:[.125,.090,.099,.017],mode:'white'},{field:'level',rect:[.738,.728,.085,.018],mode:'black'},{field:'ratio',rect:[.725,.744,.11,.030],mode:'yellow'}],
  egg:[{field:'amount',rect:[.092,.084,.148,.024],mode:'white'},{field:'level',rect:[.738,.542,.085,.018],mode:'black'},{field:'ratio',rect:[.738,.563,.087,.013],mode:'mixed'}],
@@ -22,9 +22,9 @@ export async function scanScreen(file:File,kind:PhotoKind,onProgress:(n:number)=
  const overview=document.createElement('canvas');overview.width=400;overview.height=Math.round(bitmap.height*400/bitmap.width);const overviewContext=overview.getContext('2d')!;overviewContext.drawImage(bitmap,0,0,overview.width,overview.height);
  const adaptive:Partial<Record<Region['field'],Region>>={};for(const r of locateRegions(overviewContext.getImageData(0,0,overview.width,overview.height),kind))adaptive[r.field]=r;
  for(let k=0;k<regions[kind].length;k++){
- const fallback=regions[kind][k],candidates=adaptive[fallback.field]?[adaptive[fallback.field]!,fallback]:[fallback];
+ const fallback=regions[kind][k],candidates=adaptive[fallback.field]?[...ratioCandidates(adaptive[fallback.field]!),fallback]:[fallback];
  for(const r of candidates){const canvas=document.createElement('canvas');const [x,y,w,h]=r.rect;const scale=Math.min(750/(bitmap.width*w),160/(bitmap.height*h));const cw=Math.round(bitmap.width*w*scale),ch=Math.round(bitmap.height*h*scale);canvas.width=cw;canvas.height=ch;const ctx=canvas.getContext('2d')!;ctx.drawImage(bitmap,bitmap.width*x,bitmap.height*y,bitmap.width*w,bitmap.height*h,0,0,cw,ch);
- const data=ctx.getImageData(0,0,canvas.width,canvas.height);for(let i=0;i<data.data.length;i+=4){const red=data.data[i],g=data.data[i+1],b=data.data[i+2];const ink=r.mode==='white'?Math.min(red,g,b)>180&&Math.max(red,g,b)-Math.min(red,g,b)<55:r.mode==='black'?Math.max(red,g,b)<100:r.mode==='mixed'?((Math.min(red,g,b)>180&&Math.max(red,g,b)-Math.min(red,g,b)<55)||(red>150&&g>150&&b<140)):red>150&&g>150&&b<140;const value=ink?0:255;data.data[i]=value;data.data[i+1]=value;data.data[i+2]=value;}ctx.putImageData(data,0,0);const padded=document.createElement('canvas');padded.width=canvas.width+40;padded.height=canvas.height+40;const paddedContext=padded.getContext('2d')!;paddedContext.fillStyle='white';paddedContext.fillRect(0,0,padded.width,padded.height);paddedContext.drawImage(canvas,20,20);
+ const data=ctx.getImageData(0,0,canvas.width,canvas.height);for(let i=0;i<data.data.length;i+=4){if(r.mode==='raw')continue;const red=data.data[i],g=data.data[i+1],b=data.data[i+2];const ink=r.mode==='white'?Math.min(red,g,b)>180&&Math.max(red,g,b)-Math.min(red,g,b)<55:r.mode==='black'?Math.max(red,g,b)<100:r.mode==='mixed'?((Math.min(red,g,b)>180&&Math.max(red,g,b)-Math.min(red,g,b)<55)||(red>150&&g>150&&b<140)):red>150&&g>150&&b<140;const value=ink?0:255;data.data[i]=value;data.data[i+1]=value;data.data[i+2]=value;}ctx.putImageData(data,0,0);const padded=document.createElement('canvas');padded.width=canvas.width+40;padded.height=canvas.height+40;const paddedContext=padded.getContext('2d')!;paddedContext.fillStyle='white';paddedContext.fillRect(0,0,padded.width,padded.height);paddedContext.drawImage(canvas,20,20);
  await worker.setParameters({tessedit_char_whitelist:r.field==='ratio'?'0123456789/':r.field==='amount'?'0123456789.,kKmMbB':'0123456789',tessedit_pageseg_mode:PSM.SINGLE_LINE});const result=await worker.recognize(padded);original.push(result.data.text.trim());const parsed=parseRead(r.field,result.data.text);if(Object.keys(parsed).length){Object.assign(item,parsed);break;}}
  onProgress(Math.round((k+1)/regions[kind].length*100));}
  if((kind==='skill'||kind==='egg'||kind==='mount')&&(!item.progress||!item.target)){

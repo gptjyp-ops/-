@@ -50,7 +50,7 @@ export function findLandmarks(p:Pixels,kind:PhotoKind):{amount?:Box;info?:Box;se
  }
  return result;
 }
-export type LocatedRegion={field:'amount'|'level'|'ratio'|'selected';rect:[number,number,number,number];mode:'white'|'black'|'yellow'|'mixed'};
+export type LocatedRegion={field:'amount'|'level'|'ratio'|'selected';rect:[number,number,number,number];mode:'white'|'black'|'yellow'|'mixed'|'raw'};
 export function locateRegions(p:Pixels,kind:PhotoKind):LocatedRegion[]{
  const landmarks=findLandmarks(p,kind),out:LocatedRegion[]=[],w=p.width;
  const rect=(x:number,y:number,width:number,height:number):LocatedRegion['rect']=>[x/w,y/p.height,width/w,height/p.height];
@@ -61,4 +61,12 @@ export function locateRegions(p:Pixels,kind:PhotoKind):LocatedRegion[]{
  }
  if(landmarks.selected){const b=landmarks.selected,pad=.005*w;out.push({field:'selected',rect:rect(b.x-pad,b.y-pad,b.width+2*pad,b.height+2*pad),mode:'black'});}
  return out;
+}
+
+// Keep small progress digits above the bar baseline inside a second crop.
+export function ratioCandidates(region:LocatedRegion):LocatedRegion[]{
+ if(region.field!=='ratio')return [region];
+ const [x,y,w,h]=region.rect,top=Math.max(0,y-h*.28);
+ const expanded:LocatedRegion={...region,rect:[Math.max(0,x-.01),top,Math.min(w+.02,1-Math.max(0,x-.01)),Math.min(h*1.3,1-top)]};
+ return [region,{...expanded,mode:'raw'},expanded];
 }

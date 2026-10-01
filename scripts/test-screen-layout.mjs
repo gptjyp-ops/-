@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import ts from 'typescript';
 const source=ts.transpileModule(fs.readFileSync('src/lib/screen-layout.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText;
-const {findLandmarks,locateRegions}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+const {findLandmarks,locateRegions,ratioCandidates}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
 function image(barY,infoY){
  const p={width:400,height:870,data:new Uint8ClampedArray(400*870*4).fill(255)};
  const paint=(x,y,color)=>{const i=(y*400+x)*4;p.data.set([...color,255],i);};
@@ -39,3 +39,11 @@ assert.deepEqual(maximumStatus('최대'),{level:'100',progress:'',target:''});
 assert.deepEqual(maximumStatus('Lv. 100\n최 대'),{level:'100',progress:'',target:''});
 for(const text of ['41/110','100','최대 5MB','최대치'])assert.deepEqual(maximumStatus(text),{});
 console.log('Screen landmarks and maximum summon level checks passed');
+
+const narrow={field:'ratio',mode:'mixed',rect:[.69,.81,.116,.013]};
+const alternatives=ratioCandidates(narrow);
+assert.equal(alternatives[0],narrow);
+assert.equal(alternatives[1].mode,'raw');
+assert.ok(alternatives[1].rect[1]<narrow.rect[1]);
+assert.ok(alternatives[1].rect[3]>narrow.rect[3]);
+for(const r of ratioCandidates({...narrow,rect:[0,0,1,1]}))for(const n of r.rect)assert.ok(n>=0&&n<=1);
