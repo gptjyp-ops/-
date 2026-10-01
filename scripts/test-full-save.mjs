@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import ts from 'typescript';
+const moduleUrl=source=>'data:text/javascript;base64,'+Buffer.from(ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText).toString('base64');
+const ocrUrl=moduleUrl(fs.readFileSync('src/lib/ocr.ts','utf8'));
+const source=fs.readFileSync('src/lib/inventory.ts','utf8').replace("'./ocr'",JSON.stringify(ocrUrl));
+const {incompleteGroups,emptyInventory,validateInventory}=await import(moduleUrl(source));
+const inventory=emptyInventory();assert.equal(incompleteGroups(inventory).length,4);
+for(const group of ['skill','egg','mount'])Object.assign(inventory[group],{amount:'0',level:'32',progress:'0'});
+inventory.potion.amount='0';assert.deepEqual(incompleteGroups(inventory),[]);assert.equal(validateInventory(inventory).egg.progress,'0');
+inventory.egg.progress='';assert.deepEqual(incompleteGroups(inventory),['egg']);
+inventory.egg.level='100';assert.deepEqual(incompleteGroups(inventory),[]);
+inventory.mount.level='';assert.deepEqual(incompleteGroups(inventory),['mount']);
+console.log('Full save validates all four groups, preserves zero and allows maximum level');

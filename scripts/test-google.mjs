@@ -24,6 +24,11 @@ const latest=saved.photos.skill;createFailure=true;assert.equal(invoke('save',pa
 assert.equal(invoke('save',{...payload,photos:[{kind:'skill',base64:Buffer.alloc(12).toString('base64')}]}).ok,false);
 assert.equal(invoke('save',{...payload,inventory:{...inventory,skill:{...inventory.skill,amount:'-1'}}}).ok,false);
 for(let i=0;i<5;i++)assert.equal(invoke('save',{...payload,password:'incorrect'}).ok,false);assert.ok(Number(data[1][7])>Date.now());assert.equal(invoke('save',payload).ok,false);assert.ok(released>0);
+// Four resource types and their evidence are persisted together by one save.
+const allInventory=Object.fromEntries(['skill','egg','mount','potion'].map((g,i)=>[g,{amount:String(i+10),level:g==='potion'?'':'32',progress:g==='potion'?'':'0',target:g==='potion'?'':'110',selected:'',extra:'0'}]));
+const allSaved=invoke('save',{nickname:'all-resources',password:'safe-password',inventory:allInventory,photos:['skill','egg','mount','potion'].map(kind=>({kind,base64:jpeg}))});
+assert.equal(allSaved.ok,true);assert.equal(Object.keys(allSaved.photos).length,4);
+const allRow=invoke('list').records.find(r=>r.nickname==='all-resources');assert.deepEqual(allRow.details,allInventory);assert.deepEqual(allRow.photos,allSaved.photos);
 // Bridge rejects foreign origins/channels and routes only allowed methods.
 const listeners={},sent=[],calls=[];const top={postMessage:(m,o)=>sent.push({m,o})};const runner={withSuccessHandler(f){this.success=f;return this;},withFailureHandler(f){this.failure=f;return this;},clanRpc(method,payload){calls.push({method,payload});this.success({ok:true});}};
 const script=fs.readFileSync('google/Bridge.html','utf8').match(/<script>([\s\S]*?)<\/script>/)[1].replace('<?= JSON.stringify(channel) ?>',JSON.stringify('test-channel')).replace('<?= JSON.stringify(origin) ?>',JSON.stringify('https://gptjyp-ops.github.io'));

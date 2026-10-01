@@ -21,3 +21,7 @@ export function validateInventory(value:unknown):Inventory{
  if(result[g].target!==''&&Number(result[g].target)>0&&result[g].progress!==''&&Number(result[g].progress)>Number(result[g].target))throw Error('진행 수량이 목표 수량보다 큽니다.');}
  if(!hasData)throw Error('재화를 하나 이상 입력해주세요.');return result;
 }
+
+export function incompleteGroups(value:Inventory):Group[]{
+ return groups.filter(g=>{const item=value[g],required:(keyof Item)[]=g==='potion'?['amount']:item.level==='100'?['amount','level']:['amount','level','progress'];return required.some(key=>item[key].trim()==='');});
+}

@@ -17,5 +17,6 @@ jobs:
       - run: node scripts/test-google.mjs
       - run: node scripts/test-screen-layout.mjs
       - run: node scripts/test-photo-input.mjs
+      - run: node scripts/test-full-save.mjs
       - run: npm run check
       - run: npm run build
