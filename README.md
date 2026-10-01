@@ -16,6 +16,8 @@
 
 ## 실제 사이트를 여는 방법
 
+[클랜 재화관리 사이트 열기](https://gptjyp-ops.github.io/clan-resource-manager/)
+
 구글 계정에서 Apps Script를 실행·배포한 뒤 GitHub Pages에 연결해야 합니다. **코드 업로드만으로 사이트나 공유 저장소가 자동 개설되지는 않습니다.**
 
 [구글 연결 순서 보기](google/README.md)
