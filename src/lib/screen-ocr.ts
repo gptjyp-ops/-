@@ -3,7 +3,7 @@ import type {PhotoKind,Group,Item} from './inventory';
 export type Region={field:'amount'|'level'|'ratio'|'selected';rect:[number,number,number,number];mode:'white'|'black'|'yellow'|'mixed'};
 export const regions:Record<PhotoKind,Region[]>={
  skill:[{field:'amount',rect:[.125,.090,.099,.017],mode:'white'},{field:'level',rect:[.738,.728,.085,.018],mode:'black'},{field:'ratio',rect:[.725,.744,.11,.030],mode:'yellow'}],
- egg:[{field:'amount',rect:[.092,.084,.148,.024],mode:'white'},{field:'level',rect:[.738,.542,.085,.018],mode:'black'},{field:'ratio',rect:[.738,.563,.087,.021],mode:'mixed'}],
+ egg:[{field:'amount',rect:[.092,.084,.148,.024],mode:'white'},{field:'level',rect:[.738,.542,.085,.018],mode:'black'},{field:'ratio',rect:[.738,.563,.087,.013],mode:'mixed'}],
  mount:[{field:'amount',rect:[.464,.259,.129,.022],mode:'white'},{field:'level',rect:[.747,.699,.085,.018],mode:'black'},{field:'ratio',rect:[.741,.716,.10,.032],mode:'white'}],
  eggMerge:[{field:'selected',rect:[.105,.303,.055,.022],mode:'black'}],
  mountMerge:[{field:'selected',rect:[.105,.303,.034,.022],mode:'black'}],
