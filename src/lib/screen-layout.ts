@@ -18,8 +18,19 @@ function components(p:Pixels,area:Box,test:(r:number,g:number,b:number)=>boolean
  }
  return boxes;
 }
-export function findLandmarks(p:Pixels,kind:PhotoKind):{amount?:Box;info?:Box}{
- const w=p.width,h=p.height,result:{amount?:Box;info?:Box}={};
+export function findLandmarks(p:Pixels,kind:PhotoKind):{amount?:Box;info?:Box;selected?:Box}{
+ const w=p.width,h=p.height,result:{amount?:Box;info?:Box;selected?:Box}={};
+ if(kind==='eggMerge'||kind==='mountMerge'){
+  const panels=components(p,{x:.05*w,y:.08*h,width:.90*w,height:.38*h},(r,g,b)=>Math.min(r,g,b)>170&&Math.max(r,g,b)<240&&Math.max(r,g,b)-Math.min(r,g,b)<25)
+   .filter(b=>b.width>.60*w&&b.height>.20*w).sort((a,b)=>a.y-b.y);
+  const panel=panels[0];
+  if(panel){
+   const glyphs=components(p,{x:panel.x+.02*w,y:panel.y+panel.height-.11*w,width:.24*w,height:.075*w},(r,g,b)=>Math.max(r,g,b)<100,.12)
+    .filter(b=>b.height>.017*w&&b.height<.045*w&&b.width<.04*w).sort((a,b)=>a.x-b.x);
+   const first=glyphs[0];
+   if(first){const number={...first};for(const b of glyphs.slice(1)){if(Math.abs(b.y-first.y)>.012*w)continue;if(b.x-(number.x+number.width)>.008*w)break;const bottom=Math.max(number.y+number.height,b.y+b.height);number.width=b.x+b.width-number.x;number.y=Math.min(number.y,b.y);number.height=bottom-number.y;}result.selected=number;}
+  }
+ }
  if(kind==='skill'||kind==='egg'||kind==='mount'){
   const area=kind==='mount'?{x:.34*w,y:.17*h,width:.32*w,height:.25*h}:{x:.04*w,y:.025*h,width:.23*w,height:.16*h};
   const bars=components(p,area,(r,g,b)=>Math.min(r,g,b)>40&&Math.max(r,g,b)<185&&Math.max(r,g,b)-Math.min(r,g,b)<40)
@@ -39,7 +50,7 @@ export function findLandmarks(p:Pixels,kind:PhotoKind):{amount?:Box;info?:Box}{
  }
  return result;
 }
-export type LocatedRegion={field:'amount'|'level'|'ratio';rect:[number,number,number,number];mode:'white'|'black'|'yellow'|'mixed'};
+export type LocatedRegion={field:'amount'|'level'|'ratio'|'selected';rect:[number,number,number,number];mode:'white'|'black'|'yellow'|'mixed'};
 export function locateRegions(p:Pixels,kind:PhotoKind):LocatedRegion[]{
  const landmarks=findLandmarks(p,kind),out:LocatedRegion[]=[],w=p.width;
  const rect=(x:number,y:number,width:number,height:number):LocatedRegion['rect']=>[x/w,y/p.height,width/w,height/p.height];
@@ -48,5 +59,6 @@ export function locateRegions(p:Pixels,kind:PhotoKind):LocatedRegion[]{
   out.push({field:'level',rect:rect(cx-.055*w,bottom+.003*w,.11*w,.035*w),mode:'black'});
   out.push({field:'ratio',rect:rect(cx-.058*w,bottom+.044*w,.116*w,.023*w),mode:'mixed'});
  }
+ if(landmarks.selected){const b=landmarks.selected,pad=.005*w;out.push({field:'selected',rect:rect(b.x-pad,b.y-pad,b.width+2*pad,b.height+2*pad),mode:'black'});}
  return out;
 }
