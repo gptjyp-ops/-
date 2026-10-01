@@ -41,12 +41,12 @@ export function findLandmarks(p:Pixels,kind:PhotoKind):{amount?:Box;info?:Box;se
   circles.sort((a,b)=>b.y-a.y);result.info=circles[0];
  }
  if(kind==='potion'){
-  const digits=components(p,{x:.10*w,y:.03*h,width:.17*w,height:.19*h},(r,g,b)=>r>150&&g>150&&b<140)
+  const digits=components(p,{x:.08*w,y:0,width:.32*w,height:.24*h},(r,g,b)=>r>150&&g>150&&b<140)
    .filter(b=>b.height>.018*w&&b.height<.055*w&&b.width<.05*w).sort((a,b)=>a.x-b.x);
   const lines:Box[]=[];
   for(const b of digits){const line=lines.find(a=>Math.abs((a.y+a.height/2)-(b.y+b.height/2))<.012*w&&b.x-(a.x+a.width)<.025*w);
    if(line){const bottom=Math.max(line.y+line.height,b.y+b.height);line.width=b.x+b.width-line.x;line.y=Math.min(line.y,b.y);line.height=bottom-line.y;}else lines.push({...b});}
-  result.amount=lines.sort((a,b)=>b.width-a.width)[0];
+  result.amount=lines.sort((a,b)=>a.y-b.y)[0];
  }
  return result;
 }

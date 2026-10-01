@@ -47,3 +47,11 @@ assert.equal(alternatives[1].mode,'raw');
 assert.ok(alternatives[1].rect[1]<narrow.rect[1]);
 assert.ok(alternatives[1].rect[3]>narrow.rect[3]);
 for(const r of ratioCandidates({...narrow,rect:[0,0,1,1]}))for(const n of r.rect)assert.ok(n>=0&&n<=1);
+
+// A cropped screenshot can put the potion count right at the top.
+// A longer yellow technology title below it must not be read as the count.
+const potion={width:400,height:870,data:new Uint8ClampedArray(400*870*4).fill(255)};
+function yellowGlyph(x,y,width=8,height=12){for(let row=y;row<y+height;row++)for(let col=x;col<x+width;col++)potion.data.set([240,220,20,255],(row*400+col)*4);}
+for(const x of [120,130,140])yellowGlyph(x,3);
+for(const x of [100,114,128,142])yellowGlyph(x,150,12,14);
+assert.deepEqual(findLandmarks(potion,'potion').amount,{x:120,y:3,width:28,height:12});
