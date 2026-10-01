@@ -1,10 +1,11 @@
 import type {Inventory,PhotoKind} from './inventory';
+import {googleScriptUrl} from './google-config';
 export const apiUrl=(path:string)=>(import.meta.env.VITE_API_BASE_URL||'').replace(/\/$/,'')+path;
-export const googleEnabled=!!import.meta.env.VITE_GOOGLE_SCRIPT_URL;
+export const googleEnabled=!!googleScriptUrl;
 let accessKey=sessionStorage.getItem('clanAccessKey')||'';
 export async function unlockGoogle(key:string){accessKey=key.trim();await rpc('list');sessionStorage.setItem('clanAccessKey',accessKey);}
 export function leaveClan(){accessKey='';sessionStorage.removeItem('clanAccessKey');location.reload();}
-const googleUrl=import.meta.env.VITE_GOOGLE_SCRIPT_URL||'';
+const googleUrl=googleScriptUrl;
 type Reply={ok:boolean;error?:string;records?:any[];photos?:Partial<Record<PhotoKind,string>>;base64?:string;type?:string};
 let bridgePromise:Promise<{source:Window;origin:string;channel:string}>|undefined;
 const pending=new Map<string,{resolve:(r:Reply)=>void;reject:(e:Error)=>void;timer:ReturnType<typeof setTimeout>}>();

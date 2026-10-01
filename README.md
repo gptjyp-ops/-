@@ -38,4 +38,4 @@ Google Bridge는 `https://gptjyp-ops.github.io`에서만 메시지를 받도록 
 
 구글 연동 코드의 저장·조회·검증은 로컬 모의 서비스로 검사합니다. 실제 구글 로그인, Drive 권한, Apps Script iframe 연결과 iOS 동작은 배포 후 추가 검증이 필요합니다.
 
-`worker/`, `wrangler.jsonc`, `migrations/`와 수동 Worker workflow는 이전 Cloudflare 구현의 선택사항입니다. 구글 방식에서는 실행할 필요가 없습니다. 기본 Pages workflow는 `VITE_GOOGLE_SCRIPT_URL` 변수를 사용하고, 미설정이면 게시를 건너뜁니다.
+`worker/`, `wrangler.jsonc`, `migrations/`와 수동 Worker workflow는 이전 Cloudflare 구현의 선택사항입니다. 구글 방식에서는 실행할 필요가 없습니다. Pages workflow는 `src/lib/google-config.ts`의 연결 주소를 사용하며, `VITE_GOOGLE_SCRIPT_URL` 변수로 재정의할 수 있습니다.

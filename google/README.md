@@ -8,7 +8,7 @@
 2. **새 프로젝트**를 누르고 이름을 `클랜 재화관리`로 정합니다.
 3. 기본 `Code.gs` 내용을 이 폴더의 `Code.gs` 전체 내용으로 바꿉니다.
 4. 왼쪽 파일 **+ → HTML**에서 이름을 `Bridge`로 만들고 `Bridge.html` 전체 내용을 붙여넣습니다.
-5. 저장합니다. 상단 함수 선택에서 `setup_`를 골라 **실행**합니다.
+5. 저장합니다. Code.gs 맨 아래에 `function setup() { setup_(); }`를 추가한 뒤 상단 함수 선택에서 `setup`을 골라 **실행**합니다. 완료 후 실행용 `setup` 함수는 삭제해도 됩니다.
 6. 본인 계정에서 드라이브·시트 사용 권한을 허용합니다. 실행 로그에 나온 **클랜 입장 코드**는 클랜원에게만 전달합니다.
 
 이 단계에서 `클랜 재화관리` 시트와 `클랜 재화관리 사진` 폴더가 자동 생성됩니다. 두 파일의 공유 권한을 공개로 바꾸지 마세요. 코드에는 구글 계정 비밀번호를 넣지 않습니다.
@@ -24,11 +24,10 @@
 
 ## 3. GitHub Pages 연결
 
-1. GitHub 저장소 **Settings → Secrets and variables → Actions → Variables**로 갑니다.
-2. 변수 이름 `VITE_GOOGLE_SCRIPT_URL`, 값은 위 웹 앱 URL로 저장합니다.
-3. **Settings → Pages → Source**를 **GitHub Actions**로 설정합니다.
-4. **Actions → Publish GitHub Pages → Run workflow**를 실행합니다.
-5. 배포가 성공하면 Pages에 나온 실제 사이트 주소에서 클랜 입장 코드를 입력합니다.
+1. 현재 웹 앱 URL은 `src/lib/google-config.ts`에 연결되어 있습니다. 배포를 바꿨다면 이 파일의 주소를 바꾸거나 GitHub Actions 변수 `VITE_GOOGLE_SCRIPT_URL`로 재정의합니다.
+2. **Settings → Pages → Source**를 **GitHub Actions**로 설정합니다.
+3. **Actions → Publish GitHub Pages → Run workflow**를 실행합니다.
+4. 배포가 성공하면 Pages에 나온 실제 사이트 주소에서 클랜 입장 코드를 입력합니다.
 
 현재 저장소 이름이 `-`여도 작동하며, 이름을 바꾸면 다음 배포에서 경로가 자동 적용됩니다. 입장 코드는 GitHub 변수나 코드에 넣지 않습니다. 사이트를 여는 클랜원이 직접 입력합니다.
 
