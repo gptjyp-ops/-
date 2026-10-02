@@ -36,7 +36,7 @@ i18n.setLanguage('en');assert.equal(values.get('clanUiLanguage'),'en');assert.eq
 assert.equal(i18n.tr`다음: ${'Eggs'} 사진 올리기`,'Next: upload Eggs photo');
 assert.equal(i18n.tr`${'Member123'}님의 ${'all resources'}를 저장했습니다.`,'Saved all resources for Member123.');
 // All visible static Korean text in the translated components must have an English entry.
-for(const filename of ['src/App.tsx','src/ClanPortal.tsx','src/OcrCheck.tsx','src/ScanDiagnostics.tsx','src/HelpSupport.tsx']){
+for(const filename of ['src/App.tsx','src/ClanPortal.tsx','src/OcrCheck.tsx','src/ScanDiagnostics.tsx','src/HelpSupport.tsx','src/PhotoPreview.tsx']){
  const source=ts.createSourceFile(filename,fs.readFileSync(filename,'utf8'),ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);
  function visit(node){if(ts.isCallExpression(node)&&node.expression.getText(source)==='t'&&ts.isStringLiteral(node.arguments[0]))assert.ok(dictionary[node.arguments[0].text.trim()],filename+': '+node.arguments[0].text);
  if(ts.isTaggedTemplateExpression(node)&&node.tag.getText(source)==='tr'){const n=node.template,key=ts.isTemplateExpression(n)?n.head.text+n.templateSpans.map((s,i)=>'{'+i+'}'+s.literal.text).join(''):n.text;assert.ok(dictionary[key.trim()],filename+': '+key);}ts.forEachChild(node,visit);}visit(source);

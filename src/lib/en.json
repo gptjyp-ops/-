@@ -272,5 +272,13 @@
   "서버 번호를 입력해주세요.": "Enter a server number.",
   "사진 파일을 열지 못했습니다.": "Could not open the photo file.",
   "사진 인식 기능을 불러오지 못했습니다.": "Could not load the photo scan engine.",
-  "사진 인식 처리 중 실행 오류가 발생했습니다.": "An error occurred while scanning the photo."
+  "사진 인식 처리 중 실행 오류가 발생했습니다.": "An error occurred while scanning the photo.",
+  "사진 확대": "View larger photo",
+  "올린 사진을 크게 확인하세요. 확대 후 스크롤하면 다른 부분을 볼 수 있어요.": "Inspect your uploaded photo. After zooming, scroll to see other areas.",
+  "축소": "Zoom out",
+  "확대": "Zoom in",
+  "화면에 맞춤": "Fit to screen",
+  "원본 크기": "Actual size",
+  "확대한 사진": "Enlarged photo",
+  "사진을 불러오지 못했습니다. 닫은 뒤 다시 열어주세요.": "The photo could not load. Close this viewer and try again."
 }

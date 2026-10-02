@@ -32,3 +32,23 @@ html[lang="en"] .page-heading h1{font-size:clamp(24px,3vw,34px)}
 html[lang="en"] .summary article{min-width:0}
 html[lang="en"] .panel-heading{flex-wrap:wrap;gap:8px}
 .photo-slot .field-label input[type="file"]{display:block;max-width:100%;margin:8px 0 12px}
+.photo-preview{position:relative;display:block;width:100%;border:0;background:transparent;padding:0;cursor:zoom-in;border-radius:8px;overflow:hidden}
+.photo-preview img{display:block;max-width:100%;max-height:240px;object-fit:contain;margin:auto}
+.photo-preview>span{position:absolute;right:8px;top:8px;display:flex;align-items:center;gap:5px;padding:6px 9px;border-radius:6px;background:#101928e8;color:#edf2fb;font-size:12px}
+.photo-slot .upload.has-photo{display:block;max-height:none;padding:0}
+.photo-slot .upload.has-photo .replace{position:static;transform:none;display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin:8px 0 0;cursor:pointer}
+.photo-viewer-overlay{position:fixed;inset:0;background:#050913d9;z-index:100}
+.photo-viewer{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(1100px,96vw);height:92dvh;max-height:1000px;background:#182131;color:#edf2fb;border:1px solid #53627b;border-radius:12px;z-index:101;display:flex;flex-direction:column;padding:16px;box-shadow:0 20px 80px #0009}
+.photo-viewer-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.photo-viewer-heading h2{margin:0;font-size:18px;font-weight:700}
+.photo-viewer button{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid #53627b;background:#202c40;color:#edf2fb;border-radius:7px;min-height:40px;padding:7px 12px;cursor:pointer}
+.photo-viewer button:disabled{opacity:.4;cursor:default}
+.photo-viewer button:focus-visible,.photo-preview:focus-visible,.photo-viewer-stage:focus-visible{outline:2px solid #ffb653;outline-offset:2px}
+.photo-viewer-help{margin:8px 0 12px;color:#b7c5da;font-size:13px}
+.photo-viewer-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.photo-viewer-controls output{min-width:70px;text-align:center;font-size:13px}
+.photo-viewer-stage{flex:1;min-height:0;overflow:auto;background:#0e1422;border:1px solid #344158;border-radius:7px;display:flex;padding:12px;overscroll-behavior:contain}
+.photo-viewer-stage img{display:block;flex-shrink:0;object-fit:contain;margin:auto}
+.photo-viewer-stage p{margin:auto}
+.evidence-links .photo-preview{margin-top:8px}
+@media(max-width:600px){.photo-viewer{padding:10px;height:94dvh}.photo-viewer-controls{gap:5px}.photo-viewer button{padding:7px 9px}.photo-viewer-heading h2{font-size:16px}}
