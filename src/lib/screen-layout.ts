@@ -18,8 +18,8 @@ function components(p:Pixels,area:Box,test:(r:number,g:number,b:number)=>boolean
  }
  return boxes;
 }
-export function findLandmarks(p:Pixels,kind:PhotoKind):{amount?:Box;info?:Box;progressBar?:Box;selected?:Box;amountMode?:'white'|'yellow'}{
- const w=p.width,h=p.height,result:{amount?:Box;info?:Box;progressBar?:Box;selected?:Box;amountMode?:'white'|'yellow'}={};
+export function findLandmarks(p:Pixels,kind:PhotoKind):{amount?:Box;info?:Box;progressBar?:Box;selected?:Box;amountMode?:'white'|'yellow'|'mixed'}{
+ const w=p.width,h=p.height,result:{amount?:Box;info?:Box;progressBar?:Box;selected?:Box;amountMode?:'white'|'yellow'|'mixed'}={};
  if(kind==='eggMerge'||kind==='mountMerge'){
   const panels=components(p,{x:.05*w,y:.08*h,width:.90*w,height:.38*h},(r,g,b)=>Math.min(r,g,b)>170&&Math.max(r,g,b)<240&&Math.max(r,g,b)-Math.min(r,g,b)<25)
    .filter(b=>b.width>.60*w&&b.height>.20*w).sort((a,b)=>a.y-b.y);
@@ -47,14 +47,23 @@ export function findLandmarks(p:Pixels,kind:PhotoKind):{amount?:Box;info?:Box;pr
 
  }
  if(kind==='potion'){
+  // The green vial can be in either header row. Match its colour beside
+  // the resource bar instead of assuming the second bar is always the vial.
+  const bars=components(p,{x:.025*w,y:0,width:.38*w,height:.24*h},(r,g,b)=>Math.min(r,g,b)>40&&Math.max(r,g,b)<185&&Math.max(r,g,b)-Math.min(r,g,b)<40)
+   .filter(b=>b.width>.09*w&&b.width<.35*w&&b.height>.018*w&&b.height<.075*w&&b.width/b.height>2.3).sort((a,b)=>a.y-b.y);
+  const vialBar=bars.find(bar=>{
+   const left=Math.max(0,Math.floor(bar.x-.09*w)),right=Math.floor(bar.x+.025*w);
+   const top=Math.max(0,Math.floor(bar.y-.025*w)),bottom=Math.min(h,Math.ceil(bar.y+bar.height+.025*w));
+   let green=0;for(let y=top;y<bottom;y++)for(let x=left;x<right;x++){const i=(y*w+x)*4,r=p.data[i],g=p.data[i+1],b=p.data[i+2];if(g>110&&g>r*1.5&&g>b*1.4&&r<150&&b<160)green++;}
+   return green>.00008*w*w;
+  });
+  if(vialBar){result.amount=vialBar;result.amountMode='mixed';return result;}
   const digits=components(p,{x:.08*w,y:0,width:.32*w,height:.24*h},(r,g,b)=>r>150&&g>150&&b<140)
    .filter(b=>b.height>.018*w&&b.height<.055*w&&b.width<.05*w).sort((a,b)=>a.x-b.x);
   const lines:Box[]=[];
   for(const b of digits){const line=lines.find(a=>Math.abs((a.y+a.height/2)-(b.y+b.height/2))<.012*w&&b.x-(a.x+a.width)<.025*w);
    if(line){const bottom=Math.max(line.y+line.height,b.y+b.height);line.width=b.x+b.width-line.x;line.y=Math.min(line.y,b.y);line.height=bottom-line.y;}else lines.push({...b});}
   result.amount=lines.sort((a,b)=>a.y-b.y)[0];
-  const bars=components(p,{x:.025*w,y:0,width:.38*w,height:.24*h},(r,g,b)=>Math.min(r,g,b)>40&&Math.max(r,g,b)<185&&Math.max(r,g,b)-Math.min(r,g,b)<40)
-   .filter(b=>b.width>.09*w&&b.width<.35*w&&b.height>.018*w&&b.height<.075*w&&b.width/b.height>2.3).sort((a,b)=>a.y-b.y);
   const bar=bars[1];
   if(bar&&!result.amount){result.amount=bar;result.amountMode='white';}
 

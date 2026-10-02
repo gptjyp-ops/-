@@ -60,3 +60,16 @@ const whitePotion={width:400,height:870,data:new Uint8ClampedArray(400*870*4).fi
 for(const y0 of [20,65])for(let y=y0;y<y0+14;y++)for(let x=22;x<82;x++)whitePotion.data.set([100,100,100,255],(y*400+x)*4);
 assert.equal(findLandmarks(whitePotion,'potion').amount.y,65);
 assert.equal(locateRegions(whitePotion,'potion')[0].mode,'white');
+
+// The clan technology page has the green vial in row one; the overview
+// has a red potion in row one and the green vial in row two.
+for(const vialY of [78,120]){
+ const p={width:400,height:870,data:new Uint8ClampedArray(400*870*4).fill(255)};
+ const fill=(x,y,width,height,color)=>{for(let row=y;row<y+height;row++)for(let col=x;col<x+width;col++)p.data.set([...color,255],(row*400+col)*4);};
+ for(const y of [78,120])fill(32,y,60,14,[100,100,100]);
+ fill(14,vialY+3,7,20,[20,210,35]);
+ // Another yellow numeric-looking label must not override the matched vial.
+ fill(50,160,8,12,[240,220,20]);
+ assert.equal(findLandmarks(p,'potion').amount.y,vialY);
+ assert.equal(locateRegions(p,'potion')[0].mode,'mixed');
+}
