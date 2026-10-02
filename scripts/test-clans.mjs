@@ -40,6 +40,20 @@ assert.equal(action('renameClan',{clanId:b.clan.id,adminToken:a.adminToken,name:
 assert.equal(action('renameClan',{clanId:a.clan.id,accessKey:a.clan.inviteKey,name:'stolen'}).ok,false);
 const renamed=action('renameClan',{clanId:a.clan.id,adminToken:a.adminToken,name:'=SAFE()'});assert.equal(renamed.clan.name,'=SAFE()');assert.equal(sheets.get('clans').rows[1][1],'"=SAFE()"');
 assert.equal(JSON.stringify(call('list',access(a))).includes('adminToken'),false);assert.equal(JSON.stringify(call('list',access(a))).includes(a.clan.inviteKey),false);
+// Reports are authenticated, private, bounded and contain no supplied secrets.
+const report={version:'2026-10-03.1',kind:'potion',mode:'호환',image:{width:551,height:993,bytes:252631,type:'image/png',filename:'secret.png'},issues:[{code:'OCR-02',field:'amount',message:'secret-password'}],attempts:[{field:'amount',source:'fallback',text:'secret-token 943'}],nickname:'private-name'};
+assert.equal(action('capabilities').diagnosticReports,true);
+assert.equal(call('report',{report}).ok,false);
+assert.equal(sheets.has('ocr_errors'),false);
+assert.equal(call('report',{...access(a),report:{...report,issues:[{code:'BAD'}]}}).ok,false);
+assert.equal(call('report',{...access(a),report}).ok,true);
+const log=sheets.get('ocr_errors');assert.equal(log.rows.length,2);
+const serialized=JSON.stringify(log.rows);for(const secret of ['secret','private-name',a.clan.inviteKey])assert.equal(serialized.includes(secret),false);
+assert.equal(log.rows[1][1],a.clan.id);assert.equal(JSON.parse(log.rows[1][7])[0].text.trim(),'k 943');
+assert.equal(call('report',{...access(a),report}).ok,false);assert.equal(log.rows.length,2);
+assert.equal(call('report',{...access(b),report}).ok,true);assert.equal(log.rows.length,3);
+assert.equal(JSON.stringify(call('list',access(a))).includes('OCR-02'),false);
+props.set('OCR_REPORT_'+a.clan.id,JSON.stringify({time:Date.now()-31000,hour:Math.floor(Date.now()/3600000),count:120}));assert.equal(call('report',{...access(a),report}).ok,false);
 const rotated=action('rotateInvite',{clanId:a.clan.id,adminToken:a.adminToken});assert.equal(rotated.ok,true);assert.notEqual(rotated.clan.inviteKey,a.clan.inviteKey);assert.equal(call('list',access(a)).ok,false);assert.equal(call('list',{clanId:a.clan.id,accessKey:rotated.clan.inviteKey}).records.length,1);
 const logged=action('adminLogin',{clanId:a.clan.id,password:'administrator-a'});assert.equal(logged.ok,true);assert.equal(action('adminInfo',{clanId:a.clan.id,adminToken:a.adminToken}).ok,false);
 const session=JSON.parse(props.get('ADMIN_SESSION_'+a.clan.id));session.expires=0;props.set('ADMIN_SESSION_'+a.clan.id,JSON.stringify(session));assert.equal(action('adminInfo',{clanId:a.clan.id,adminToken:logged.adminToken}).ok,false);

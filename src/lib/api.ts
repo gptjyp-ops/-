@@ -1,3 +1,4 @@
+import type {ScanReport} from './scan-diagnostics';
 import type {Inventory,PhotoKind} from './inventory';
 import {googleScriptUrl} from './google-config';
 export const apiUrl=(path:string)=>(import.meta.env.VITE_API_BASE_URL||'').replace(/\/$/,'')+path;
@@ -15,7 +16,7 @@ const googleUrl=googleScriptUrl;
 export type ClanInfo={id:string;name:string;server?:string;inviteKey?:string};
 export let serverSelectionSupported=false;
 export let serverOptions:string[]=[];
-type Reply={clan?:ClanInfo;adminToken?:string;multiClan?:boolean;serverSelection?:boolean;servers?:string[];ok:boolean;error?:string;records?:any[];photos?:Partial<Record<PhotoKind,string>>;base64?:string;type?:string};
+type Reply={clan?:ClanInfo;adminToken?:string;multiClan?:boolean;diagnosticReports?:boolean;serverSelection?:boolean;servers?:string[];ok:boolean;error?:string;records?:any[];photos?:Partial<Record<PhotoKind,string>>;base64?:string;type?:string};
 let bridgePromise:Promise<{source:Window;origin:string;channel:string}>|undefined;
 const pending=new Map<string,{resolve:(r:Reply)=>void;reject:(e:Error)=>void;timer:ReturnType<typeof setTimeout>}>();
 function bridge(){
@@ -52,3 +53,12 @@ export async function clanAction(operation:string,payload:Record<string,unknown>
 export function invitationLink(clan:ClanInfo){return location.origin+import.meta.env.BASE_URL+'#'+new URLSearchParams({clan:clan.id,code:clan.inviteKey||''}).toString();}
 const photoCache=new Map<string,Promise<string>>();
 export function photoUrl(id:string):Promise<string>{if(!googleUrl)return Promise.resolve(apiUrl('/api/photos/'+id));let p=photoCache.get(id);if(!p){p=rpc('photo',{id}).then(d=>{if(!/^image\/(jpeg|png|webp)$/.test(d.type||'')||!d.base64)throw Error('사진을 읽지 못했습니다.');return 'data:'+d.type+';base64,'+d.base64;}).catch(e=>{photoCache.delete(id);throw e;});photoCache.set(id,p);}return p;}
+
+export async function sendScanReport(report:ScanReport){
+ if(!googleEnabled||!savedAccessKey())throw Error('클랜에 입장한 뒤 오류를 전송할 수 있습니다.');
+ const capability=await rpc('list',{operation:'capabilities'});
+ if(!capability.diagnosticReports)throw Error('오류 자동 전송은 구글 스크립트 업데이트 후 사용할 수 있습니다.');
+ // Only diagnostic metadata is sent. Never include photo bytes, filenames,
+ // nickname, passwords, browser URLs or invitation codes in the report.
+ return rpc('report',{report:{version:report.version,kind:report.kind,mode:report.mode,image:report.image,issues:report.issues.map(({code,field})=>({code,field})),attempts:report.attempts.map(({field,source,text})=>({field,source,text:text.replace(/[^0-9.,/kKmMbB\s]/g,'').slice(0,80)}))}});
+}
