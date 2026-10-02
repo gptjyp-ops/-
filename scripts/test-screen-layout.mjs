@@ -67,6 +67,8 @@ for(const vialY of [78,120]){
  const p={width:400,height:870,data:new Uint8ClampedArray(400*870*4).fill(255)};
  const fill=(x,y,width,height,color)=>{for(let row=y;row<y+height;row++)for(let col=x;col<x+width;col++)p.data.set([...color,255],(row*400+col)*4);};
  for(const y of [78,120])fill(32,y,60,14,[100,100,100]);
+ // Red potion and every other resource have green square '+' controls too.
+ for(const y of [78,120])fill(25,y+12,8,8,[20,210,35]);
  fill(14,vialY+3,7,20,[20,210,35]);
  // Another yellow numeric-looking label must not override the matched vial.
  fill(50,160,8,12,[240,220,20]);

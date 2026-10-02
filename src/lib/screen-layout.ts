@@ -54,8 +54,10 @@ export function findLandmarks(p:Pixels,kind:PhotoKind):{amount?:Box;info?:Box;pr
   const vialBar=bars.find(bar=>{
    const left=Math.max(0,Math.floor(bar.x-.09*w)),right=Math.floor(bar.x+.025*w);
    const top=Math.max(0,Math.floor(bar.y-.025*w)),bottom=Math.min(h,Math.ceil(bar.y+bar.height+.025*w));
-   let green=0;for(let y=top;y<bottom;y++)for(let x=left;x<right;x++){const i=(y*w+x)*4,r=p.data[i],g=p.data[i+1],b=p.data[i+2];if(g>110&&g>r*1.5&&g>b*1.4&&r<150&&b<160)green++;}
-   return green>.00008*w*w;
+   const green=components(p,{x:left,y:top,width:right-left,height:bottom-top},(r,g,b)=>g>110&&g>r*1.5&&g>b*1.4&&r<150&&b<160,.15);
+   // Every currency has a green '+' button. Only the elongated green
+   // liquid inside the vial is an anchor, not a square plus sign.
+   return green.some(b=>b.height>.026*w&&b.height>b.width*1.25);
   });
   if(vialBar){result.amount=vialBar;result.amountMode='mixed';return result;}
   const digits=components(p,{x:.08*w,y:0,width:.32*w,height:.24*h},(r,g,b)=>r>150&&g>150&&b<140)
