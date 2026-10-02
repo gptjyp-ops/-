@@ -21,5 +21,6 @@ jobs:
       - run: node scripts/test-photo-input.mjs
       - run: node scripts/test-full-save.mjs
       - run: node scripts/test-scan-diagnostics.mjs
+      - run: node scripts/test-i18n.mjs
       - run: npm run check
       - run: npm run build

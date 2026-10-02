@@ -1,0 +1,2 @@
+import {setLanguage,useLanguage} from './lib/i18n';
+export default function LanguageSwitch(){const language=useLanguage();return <nav className="language-switch" aria-label="Language / 언어"><button type="button" lang="ko" aria-pressed={language==='ko'} onClick={()=>setLanguage('ko')}>한국어</button><button type="button" lang="en" aria-pressed={language==='en'} onClick={()=>setLanguage('en')}>English</button></nav>;}

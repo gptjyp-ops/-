@@ -22,3 +22,12 @@
 .support-sheet [data-slot="sheet-title"]{color:#213a46;font-size:20px}
 .support-sheet [data-slot="sheet-description"]{color:#61727c}
 .support-sheet a{color:#176d5f;text-decoration:underline}
+.language-switch{display:flex;justify-content:flex-end;gap:4px;max-width:1240px;margin:0 auto;padding:10px 24px}
+.language-switch button{color:var(--muted-foreground);border:1px solid var(--border);background:transparent;border-radius:8px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer}
+.language-switch button[aria-pressed="true"]{background:var(--primary);color:#17202c;border-color:var(--primary);font-weight:700}
+.language-switch button:focus-visible{outline:3px solid #79bcb1;outline-offset:2px}
+html[lang="en"] .resource-tabs{height:auto;min-height:42px;flex-wrap:wrap}
+html[lang="en"] .save-mode{flex-wrap:wrap}
+html[lang="en"] .page-heading h1{font-size:clamp(24px,3vw,34px)}
+html[lang="en"] .summary article{min-width:0}
+html[lang="en"] .panel-heading{flex-wrap:wrap;gap:8px}
