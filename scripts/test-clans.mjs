@@ -12,8 +12,11 @@ const call=(method,payload)=>JSON.parse(JSON.stringify(context.clanRpc(method,pa
 const action=(operation,p={})=>call('list',{operation,...p});
 assert.equal(action('capabilities').multiClan,true);
 assert.equal(action('createClan',{name:'A',password:'short'}).ok,false);
-const a=action('createClan',{name:'A',password:'administrator-a'}),b=action('createClan',{name:'B',password:'administrator-b'});
+const a=action('createClan',{name:'A',server:'0012',password:'administrator-a'}),b=action('createClan',{name:'A',server:'13',password:'administrator-b'});
 assert.equal(a.ok,true);assert.equal(b.ok,true);assert.notEqual(a.clan.id,b.clan.id);
+assert.equal(a.clan.server,'12');assert.equal(b.clan.server,'13');
+assert.deepEqual(action('capabilities').servers,['12','13']);
+for(const server of ['0','-1','abc','=1+1','1.2','1234567'])assert.equal(action('createClan',{name:'Bad',server,password:'administrator-a'}).ok,false);
 const inventory=Object.fromEntries(['skill','egg','mount','potion'].map(g=>[g,{amount:'10',level:'32',progress:'0',target:'110',selected:'',extra:'0'}]));
 const jpeg=Buffer.from([255,216,255,224,0,0,0,0,0,0,0,0]).toString('base64');
 const access=c=>({clanId:c.clan.id,accessKey:c.clan.inviteKey});
@@ -21,6 +24,16 @@ const payload={nickname:'same-name',password:'member-password',inventory,photos:
 const savedA=call('save',{...access(a),...payload}),savedB=call('save',{...access(b),...payload,inventory:{...inventory,skill:{...inventory.skill,amount:'20'}}});
 assert.equal(savedA.ok,true);assert.equal(savedB.ok,true);
 assert.equal(call('list',access(a)).records[0].details.skill.amount,'10');assert.equal(call('list',access(b)).records[0].details.skill.amount,'20');
+assert.equal(action('setClanServer',{clanId:b.clan.id,adminToken:a.adminToken,server:'99'}).ok,false);
+assert.equal(action('setClanServer',{...access(a),server:'99'}).ok,false);
+assert.equal(action('setClanServer',{clanId:a.clan.id,adminToken:a.adminToken,server:''}).ok,false);
+assert.equal(action('setClanServer',{clanId:a.clan.id,adminToken:a.adminToken,server:'99'}).clan.server,'99');
+assert.equal(call('list',access(a)).clan.server,'99');assert.equal(call('list',access(a)).records[0].details.skill.amount,'10');
+// Old registries had ten columns. Missing server data remains readable and
+// adding the new header must not change passwords, keys or member records.
+sheets.get('clans').rows[0].length=10;sheets.get('clans').rows[2].length=10;
+assert.equal(action('adminInfo',{clanId:b.clan.id,adminToken:b.adminToken}).clan.server,'');
+assert.equal(sheets.get('clans').rows[0][10],'server');assert.equal(call('list',access(b)).records[0].details.skill.amount,'20');
 assert.equal(call('list',{clanId:a.clan.id,accessKey:b.clan.inviteKey}).ok,false);
 assert.equal(call('photo',{...access(b),id:savedA.photos.skill}).ok,false);assert.equal(call('photo',{...access(a),id:savedA.photos.skill}).ok,true);
 assert.equal(action('renameClan',{clanId:b.clan.id,adminToken:a.adminToken,name:'stolen'}).ok,false);
@@ -34,7 +47,7 @@ for(let i=0;i<5;i++)assert.equal(action('adminLogin',{clanId:b.clan.id,password:
 // Existing clan migration preserves members and photos, and prevents a second claim.
 const legacyKey=props.get('CLAN_KEY');const old=call('save',{accessKey:legacyKey,...payload});assert.equal(old.ok,true);
 assert.equal(action('claimLegacy',{name:'Original',password:'legacy-admin-password',accessKey:'wrong'}).ok,false);
-const legacy=action('claimLegacy',{name:'Original',password:'legacy-admin-password',accessKey:legacyKey});assert.equal(legacy.ok,true);assert.equal(call('list',{accessKey:legacyKey}).records.length,1);assert.equal(call('photo',{accessKey:legacyKey,id:old.photos.skill}).ok,true);
+const legacy=action('claimLegacy',{name:'Original',server:'77',password:'legacy-admin-password',accessKey:legacyKey});assert.equal(legacy.ok,true);assert.equal(legacy.clan.server,'77');assert.equal(call('list',{accessKey:legacyKey}).records.length,1);assert.equal(call('photo',{accessKey:legacyKey,id:old.photos.skill}).ok,true);
 assert.equal(action('claimLegacy',{name:'Hijack',password:'legacy-admin-password',accessKey:legacyKey}).ok,false);
 const legacyRotate=action('rotateInvite',{clanId:'legacy',adminToken:legacy.adminToken});assert.equal(call('list',{accessKey:legacyKey}).ok,false);assert.equal(call('list',{accessKey:legacyRotate.clan.inviteKey}).records.length,1);
 console.log('Clan isolation, photo ownership, administrator authority, lockout, session expiry, invite rotation and legacy migration passed.');

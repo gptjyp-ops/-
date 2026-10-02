@@ -12,8 +12,10 @@ export const savedAccessKey=()=>accessKey;
 export async function unlockGoogle(key:string){accessKey=key.trim();await rpc('list');sessionStorage.setItem(keySlot,accessKey);}
 export function leaveClan(){accessKey='';sessionStorage.removeItem(keySlot);location.href=import.meta.env.BASE_URL;}
 const googleUrl=googleScriptUrl;
-export type ClanInfo={id:string;name:string;inviteKey?:string};
-type Reply={clan?:ClanInfo;adminToken?:string;multiClan?:boolean;ok:boolean;error?:string;records?:any[];photos?:Partial<Record<PhotoKind,string>>;base64?:string;type?:string};
+export type ClanInfo={id:string;name:string;server?:string;inviteKey?:string};
+export let serverSelectionSupported=false;
+export let serverOptions:string[]=[];
+type Reply={clan?:ClanInfo;adminToken?:string;multiClan?:boolean;serverSelection?:boolean;servers?:string[];ok:boolean;error?:string;records?:any[];photos?:Partial<Record<PhotoKind,string>>;base64?:string;type?:string};
 let bridgePromise:Promise<{source:Window;origin:string;channel:string}>|undefined;
 const pending=new Map<string,{resolve:(r:Reply)=>void;reject:(e:Error)=>void;timer:ReturnType<typeof setTimeout>}>();
 function bridge(){
@@ -33,7 +35,7 @@ function bridge(){
  });return bridgePromise;
 }
 async function rpc(method:string,payload:Record<string,unknown>={}):Promise<Reply>{const b=await bridge();return new Promise((resolve,reject)=>{const id=crypto.randomUUID();const timer=setTimeout(()=>{pending.delete(id);reject(Error('응답이 늦어지고 있습니다. 현황을 새로고침하여 저장 여부를 확인해주세요.'));},120000);pending.set(id,{resolve,reject,timer});b.source.postMessage({type:'clan-request',channel:b.channel,id,method,payload:{accessKey,clanId:activeClanId,...payload}},b.origin);});}
-export async function getRecords(){if(googleUrl){const reply=await rpc('list');if(reply.clan)activeClanName=reply.clan.name;return reply.records||[];}const r=await fetch(apiUrl('/api/records'),{cache:'no-store'});const d:any=await r.json();if(!r.ok)throw Error(d.error);return d.records;}
+export async function getRecords(){if(googleUrl){const reply=await rpc('list');if(reply.clan)activeClanName=(reply.clan.server?'서버 '+reply.clan.server+' · ':'')+reply.clan.name;return reply.records||[];}const r=await fetch(apiUrl('/api/records'),{cache:'no-store'});const d:any=await r.json();if(!r.ok)throw Error(d.error);return d.records;}
 async function encodedPhoto(file:File,kind:PhotoKind){
  const image=await createImageBitmap(file);try{
   const scale=Math.min(1,1600/Math.max(image.width,image.height)),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(image.width*scale));canvas.height=Math.max(1,Math.round(image.height*scale));const ctx=canvas.getContext('2d')!;ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(image,0,0,canvas.width,canvas.height);
@@ -45,7 +47,7 @@ export async function saveInventory(nickname:string,password:string,inventory:In
  if(googleUrl){const photos=[];for(const [kind,file] of Object.entries(files))if(file)photos.push(await encodedPhoto(file,kind as PhotoKind));return rpc('save',{nickname,password,inventory,photos});}
  const form=new FormData();form.set('nickname',nickname);form.set('password',password);form.set('inventory',JSON.stringify(inventory));for(const [kind,file] of Object.entries(files))if(file)form.set('photo_'+kind,file);const r=await fetch(apiUrl('/api/records'),{method:'POST',body:form});const d:any=await r.json();if(!r.ok)throw Error(d.error);return d as Reply;
 }
-export async function supportsClans(){try{return !!(await rpc('list',{operation:'capabilities'})).multiClan;}catch(e){if(e instanceof Error&&e.message.includes('클랜 입장 코드가 맞지 않습니다'))return false;throw e;}}
+export async function supportsClans(){try{const reply=await rpc('list',{operation:'capabilities'});serverSelectionSupported=!!reply.serverSelection;serverOptions=(reply.servers||[]).filter(s=>/^\d{1,6}$/.test(s));return !!reply.multiClan;}catch(e){if(e instanceof Error&&e.message.includes('클랜 입장 코드가 맞지 않습니다'))return false;throw e;}}
 export async function clanAction(operation:string,payload:Record<string,unknown>={}){return rpc('list',{operation,...payload});}
 export function invitationLink(clan:ClanInfo){return location.origin+import.meta.env.BASE_URL+'#'+new URLSearchParams({clan:clan.id,code:clan.inviteKey||''}).toString();}
 const photoCache=new Map<string,Promise<string>>();

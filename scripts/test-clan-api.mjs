@@ -3,9 +3,9 @@ import vm from 'node:vm';
 import crypto from 'node:crypto';
 import {build} from 'esbuild';
 const code=(await build({entryPoints:['src/lib/api.ts'],bundle:true,write:false,format:'iife',globalName:'ClanAPI',define:{'import.meta.env.BASE_URL':'"/clan-resource-manager/"','import.meta.env.VITE_GOOGLE_SCRIPT_URL':'"https://script.google.com/macros/s/test/exec"','import.meta.env.VITE_API_BASE_URL':'""'}})).outputFiles[0].text;
-function setup(hash,stored){const storage=new Map(Object.entries(stored)),handlers={},sent=[];let frame,source;
+function setup(hash,stored,serverSelection=true){const storage=new Map(Object.entries(stored)),handlers={},sent=[];let frame,source;
  const location={hash,origin:'https://gptjyp-ops.github.io',href:''};
- source={postMessage(message,origin){sent.push(message);const payload=message.payload;const result=payload.operation==='capabilities'?{ok:true,multiClan:true}:{ok:true,records:[],clan:{id:payload.clanId,name:'Test'},photos:{}};handlers.message({origin,source,data:{type:'clan-response',channel:message.channel,id:message.id,result}});}};
+ source={postMessage(message,origin){sent.push(message);const payload=message.payload;const result=payload.operation==='capabilities'?{ok:true,multiClan:true,serverSelection,servers:serverSelection?['12','99','not-a-server']:[]}:{ok:true,records:[],clan:{id:payload.clanId,name:'Test',server:'12'},photos:{}};handlers.message({origin,source,data:{type:'clan-response',channel:message.channel,id:message.id,result}});}};
  const context={console,URLSearchParams,crypto:{randomUUID:()=>crypto.randomUUID()},location,sessionStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},setTimeout,clearTimeout,window:{addEventListener:(k,f)=>handlers[k]=f,removeEventListener:k=>delete handlers[k]},document:{createElement:()=>frame={remove(){}},body:{appendChild(){const channel=new URL(frame.src).searchParams.get('channel');handlers.message({origin:'https://script.googleusercontent.com',source,data:{type:'clan-ready',channel}});}}}};
  vm.createContext(context);vm.runInContext(code,context);return {api:context.ClanAPI,storage,sent,location};}
 const a=setup('#clan=aaaaaaaaaaaaaaaaaaaaaaaa&code=invite-a',{clanAccessKey:'legacy-secret','clanAccessKey:bbbbbbbbbbbbbbbbbbbbbbbb':'b-secret'});
@@ -14,7 +14,9 @@ await a.api.unlockGoogle('invite-a');await a.api.saveInventory('member','passwor
 assert.equal(a.storage.get('clanAccessKey:aaaaaaaaaaaaaaaaaaaaaaaa'),'invite-a');assert.equal(a.storage.get('clanAccessKey'),'legacy-secret');
 assert.ok(a.sent.every(m=>m.payload.clanId==='aaaaaaaaaaaaaaaaaaaaaaaa'&&m.payload.accessKey==='invite-a'));
 assert.equal(await a.api.supportsClans(),true);
+assert.equal(a.api.serverSelectionSupported,true);assert.deepEqual(Array.from(a.api.serverOptions),['12','99']);assert.equal(a.api.activeClanName,'서버 12 · Test');
 assert.match(a.api.invitationLink({id:'abc',inviteKey:'x&y'}),/#clan=abc&code=x%26y$/);
 a.api.leaveClan();assert.equal(a.storage.has('clanAccessKey:aaaaaaaaaaaaaaaaaaaaaaaa'),false);assert.equal(a.storage.get('clanAccessKey'),'legacy-secret');
 const legacy=setup('',{clanAccessKey:'legacy-secret'});assert.equal(legacy.api.savedAccessKey(),'legacy-secret');await legacy.api.getRecords();assert.equal(legacy.sent[0].payload.clanId,'legacy');
+const oldBackend=setup('',{},false);assert.equal(await oldBackend.api.supportsClans(),true);assert.equal(oldBackend.api.serverSelectionSupported,false);
 console.log('Frontend clan ID, invitation parsing, credential scope, save payload and legacy compatibility passed.');

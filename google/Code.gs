@@ -36,7 +36,7 @@ function clanRpc(method,payload){
   payload=payload||{};
   if(method==='list'&&payload.operation)return clanOperation_(payload);
   var clan=authorizeClan_(payload);var key=clan.key;
-  if(method==='list')return {ok:true,clan:{id:clan.id,name:clan.name},records:rows_(sheet_(clan)).map(publicRow_).sort(function(a,b){return b.updated_at.localeCompare(a.updated_at);})};
+  if(method==='list')return {ok:true,clan:{id:clan.id,name:clan.name,server:clan.server||''},records:rows_(sheet_(clan)).map(publicRow_).sort(function(a,b){return b.updated_at.localeCompare(a.updated_at);})};
   if(method==='photo'){
    var id=String(payload&&payload.id||'');var found=rows_(sheet_(clan)).some(function(r){var photos=JSON.parse(r[4]);return KINDS_.some(function(k){return photos[k]===id;});});
    if(!found)throw Error('사진을 찾을 수 없습니다.');var file=DriveApp.getFileById(id),parents=file.getParents(),inFolder=false;var folderId=clan.folderId;while(parents.hasNext())if(parents.next().getId()===folderId)inFolder=true;if(!inFolder)throw Error('사진을 찾을 수 없습니다.');var blob=file.getBlob();return {ok:true,type:blob.getContentType(),base64:Utilities.base64Encode(blob.getBytes())};
@@ -75,10 +75,11 @@ function save_(p,clan){
 function registry_(){
  var id=PropertiesService.getScriptProperties().getProperty('SHEET_ID');if(!id)throw Error('구글 저장 설정이 아직 완료되지 않았습니다.');
  var book=SpreadsheetApp.openById(id),s=book.getSheetByName('clans');
- if(!s){s=book.insertSheet('clans');s.appendRow(['id','name_json','invite_key','admin_hash','salt','member_sheet','folder_id','created_at','failed_attempts','lock_until']);s.setFrozenRows(1);}return s;
+ if(!s){s=book.insertSheet('clans');s.appendRow(['id','name_json','invite_key','admin_hash','salt','member_sheet','folder_id','created_at','failed_attempts','lock_until','server']);s.setFrozenRows(1);}else if(s.getRange(1,11,1,1).getValues()[0][0]!=='server')s.getRange(1,11,1,1).setValues([['server']]);return s;
 }
-function clanRows_(s){return s.getLastRow()<2?[]:s.getRange(2,1,s.getLastRow()-1,10).getValues();}
-function clanFrom_(r){return {id:String(r[0]),name:JSON.parse(r[1]),key:String(r[2]),sheetName:String(r[5]),folderId:String(r[6])};}
+function clanRows_(s){return s.getLastRow()<2?[]:s.getRange(2,1,s.getLastRow()-1,11).getValues();}
+function clanFrom_(r){return {id:String(r[0]),name:JSON.parse(r[1]),key:String(r[2]),sheetName:String(r[5]),folderId:String(r[6]),server:String(r[10]||'')};}
+function publicClan_(r){return {id:r[0],name:JSON.parse(r[1]),inviteKey:r[2],server:String(r[10]||'')};}
 function findClan_(id){var s=registry_(),rows=clanRows_(s),index=rows.findIndex(function(r){return r[0]===id;});if(index<0)throw Error('클랜을 찾을 수 없습니다. 클랜 주소를 확인해주세요.');return {sheet:s,row:rows[index],index:index};}
 function authorizeClan_(p){
  var id=String(p.clanId||'legacy');if(!/^(legacy|[a-f0-9]{24})$/.test(id))throw Error('클랜 주소를 확인해주세요.');
@@ -95,16 +96,17 @@ function clanAdmin_(p){
 }
 function adminReply_(found){
  var token=Utilities.getUuid().replace(/-/g,'')+Utilities.getUuid().replace(/-/g,'');PropertiesService.getScriptProperties().setProperty('ADMIN_SESSION_'+found.row[0],JSON.stringify({hash:hash_(token,'admin-session'),expires:Date.now()+21600000}));
- return {ok:true,clan:{id:found.row[0],name:JSON.parse(found.row[1]),inviteKey:found.row[2]},adminToken:token};
+ return {ok:true,clan:publicClan_(found.row),adminToken:token};
 }
+function clanServer_(server){if(server===undefined||server==='')return '';if(typeof server!=='string'||!/^\d{1,6}$/.test(server.trim())||Number(server.trim())<1)throw Error('서버 번호는 1 이상의 숫자로 입력해주세요.');return String(Number(server.trim()));}
 function clanName_(name){if(typeof name!=='string'||!name.trim()||name.trim().length>40)throw Error('클랜 이름은 1~40자로 입력해주세요.');return name.trim().normalize('NFKC');}
 function clanPassword_(password){if(typeof password!=='string'||password.length<10||password.length>100)throw Error('클랜장 비밀번호는 10~100자로 정해주세요.');return password;}
 function clanOperation_(p){
- var op=p.operation;if(op==='capabilities')return {ok:true,multiClan:true};
+ var op=p.operation;if(op==='capabilities')return {ok:true,multiClan:true,serverSelection:true,servers:Array.from(new Set(clanRows_(registry_()).map(function(r){return String(r[10]||'');}).filter(function(s){return /^\d{1,6}$/.test(s);}))).sort(function(a,b){return Number(a)-Number(b);})};
  var lock=LockService.getScriptLock();if(!lock.tryLock(15000))throw Error('다른 요청을 처리 중입니다. 잠시 후 다시 시도해주세요.');
  try{
   if(op==='createClan'||op==='claimLegacy'){
-   var name=clanName_(p.name),password=clanPassword_(p.password),s=registry_(),rows=clanRows_(s);
+   var name=clanName_(p.name),server=clanServer_(p.server),password=clanPassword_(p.password),s=registry_(),rows=clanRows_(s);
    var id=op==='claimLegacy'?'legacy':Utilities.getUuid().replace(/-/g,'').slice(0,24),key,memberSheet,folderId;
    if(op==='claimLegacy'){
     var legacy=authorizeClan_({clanId:'legacy',accessKey:p.accessKey});if(rows.some(function(r){return r[0]==='legacy';}))throw Error('기존 클랜은 이미 클랜장 등록을 마쳤습니다. 클랜장 로그인으로 들어가주세요.');key=legacy.key;memberSheet='members';folderId=legacy.folderId;
@@ -116,7 +118,7 @@ function clanOperation_(p){
     members.appendRow(['nickname_json','password_hash','salt','details_json','photos_json','updated_at','failed_attempts','lock_until']);members.setFrozenRows(1);
     folderId=DriveApp.createFolder('클랜 재화관리 '+id).getId();
    }
-   var salt=Utilities.getUuid();s.appendRow([id,JSON.stringify(name),key,hash_(password,salt),salt,memberSheet,folderId,new Date().toISOString(),0,0]);SpreadsheetApp.flush();return adminReply_({row:clanRows_(s).find(function(r){return r[0]===id;})});
+   var salt=Utilities.getUuid();s.appendRow([id,JSON.stringify(name),key,hash_(password,salt),salt,memberSheet,folderId,new Date().toISOString(),0,0,server]);SpreadsheetApp.flush();return adminReply_({row:clanRows_(s).find(function(r){return r[0]===id;})});
   }
   if(op==='adminLogin'){
    var found=findClan_(String(p.clanId||'')),r=found.row;if(Number(r[9])>Date.now())throw Error('클랜장 비밀번호 확인 시도가 많습니다. 10분 뒤 다시 시도해주세요.');
@@ -124,11 +126,12 @@ function clanOperation_(p){
    found.sheet.getRange(found.index+2,9,1,2).setValues([[0,0]]);return adminReply_(found);
   }
   var found=clanAdmin_(p);
-  if(op==='adminInfo')return {ok:true,clan:{id:found.row[0],name:JSON.parse(found.row[1]),inviteKey:found.row[2]}};
+  if(op==='adminInfo')return {ok:true,clan:publicClan_(found.row)};
   if(op==='renameClan'){found.row[1]=JSON.stringify(clanName_(p.name));found.sheet.getRange(found.index+2,2,1,1).setValues([[found.row[1]]]);}
+  else if(op==='setClanServer'){var server=clanServer_(p.server);if(!server)throw Error('서버 번호를 입력해주세요.');found.row[10]=server;found.sheet.getRange(found.index+2,11,1,1).setValues([[server]]);}
   else if(op==='rotateInvite'){found.row[2]=Utilities.getUuid().replace(/-/g,'');found.sheet.getRange(found.index+2,3,1,1).setValues([[found.row[2]]]);}
   else if(op==='adminLogout'){PropertiesService.getScriptProperties().setProperty('ADMIN_SESSION_'+found.row[0],'');return {ok:true};}
   else throw Error('지원하지 않는 요청입니다.');
-  SpreadsheetApp.flush();return {ok:true,clan:{id:found.row[0],name:JSON.parse(found.row[1]),inviteKey:found.row[2]}};
+  SpreadsheetApp.flush();return {ok:true,clan:publicClan_(found.row)};
  }finally{lock.releaseLock();}
 }
