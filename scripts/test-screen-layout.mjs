@@ -69,7 +69,8 @@ for(const vialY of [78,120]){
  for(const y of [78,120])fill(32,y,60,14,[100,100,100]);
  // Red potion and every other resource have green square '+' controls too.
  for(const y of [78,120])fill(25,y+12,8,8,[20,210,35]);
- fill(14,vialY+3,7,20,[20,210,35]);
+ // A diagonally tilted tube has a near-square green bounding box.
+ fill(14,vialY+3,14,15,[20,210,35]);
  // Another yellow numeric-looking label must not override the matched vial.
  fill(50,160,8,12,[240,220,20]);
  assert.equal(findLandmarks(p,'potion').amount.y,vialY);
