@@ -19,3 +19,6 @@
 .support-body{padding:0 24px 28px;line-height:1.8;font-size:15px}
 .support-body h3{font-size:17px;margin-top:24px}.support-body ul{list-style:disc;padding-left:22px}
 .support-body p{margin:14px 0}.support-pending{border:1px solid #dae7e3;background:#f1f7f5;border-radius:14px;padding:16px;margin:24px 0}
+.support-sheet [data-slot="sheet-title"]{color:#213a46;font-size:20px}
+.support-sheet [data-slot="sheet-description"]{color:#61727c}
+.support-sheet a{color:#176d5f;text-decoration:underline}
