@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {build} from 'esbuild';
+const bundled=await build({entryPoints:['src/lib/scan-diagnostics.ts'],bundle:true,write:false,platform:'node',format:'esm'});
+const {missingIssues,newScanReport,reportText,ScanFailure}=await import('data:text/javascript;base64,'+Buffer.from(bundled.outputFiles[0].text).toString('base64'));
+assert.deepEqual(missingIssues('egg',{amount:'4.96k',level:'66',progress:'0',target:'23'},{}),[]);
+assert.deepEqual(missingIssues('potion',{amount:'69'},{}),[]);
+assert.deepEqual(missingIssues('skill',{amount:'0',level:'100'},{}),[]);
+assert.deepEqual(missingIssues('eggMerge',{selected:'0'},{}),[]);
+assert.equal(missingIssues('egg',{amount:'4.96k',level:'66'},{ratio:{}})[0].code,'OCR-03');
+assert.equal(missingIssues('potion',{},{} )[0].code,'OCR-02');
+const report=newScanReport({name:'private-name.png',size:123,type:'image/png'},'potion',true);
+report.issues=[{code:'IMG-01',message:'사진 파일을 열지 못했습니다.'}];
+assert.match(new ScanFailure(report).message,/IMG-01/);
+assert.doesNotMatch(reportText(report),/private-name/);
+assert.equal(report.mode,'호환');
+console.log('Scan diagnostics: zero, maximum, partial failure, and private filename checks passed.');
