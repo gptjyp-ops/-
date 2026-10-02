@@ -31,7 +31,9 @@ export async function scanScreen(file:File,kind:PhotoKind,onProgress:(n:number)=
  if((kind==='skill'||kind==='egg'||kind==='mount')&&(!item.progress||!item.target)){
   onProgress(95);
   const level=adaptive.level||regions[kind].find(r=>r.field==='level')!,ratio=adaptive.ratio||regions[kind].find(r=>r.field==='ratio')!;
-  const x=Math.min(level.rect[0],ratio.rect[0]),y=Math.min(level.rect[1],ratio.rect[1]),right=Math.max(level.rect[0]+level.rect[2],ratio.rect[0]+ratio.rect[2]),bottom=Math.max(level.rect[1]+level.rect[3],ratio.rect[1]+ratio.rect[3]);
+  // The Max label sits closer to the icon than an ordinary Lv. label.
+  // Include its top edge in small screenshots instead of clipping the glyphs.
+  const x=Math.min(level.rect[0],ratio.rect[0]),y=Math.max(0,Math.min(level.rect[1],ratio.rect[1])-.013*bitmap.width/bitmap.height),right=Math.max(level.rect[0]+level.rect[2],ratio.rect[0]+ratio.rect[2]),bottom=Math.max(level.rect[1]+level.rect[3],ratio.rect[1]+ratio.rect[3]);
   const canvas=document.createElement('canvas'),scale=Math.min(750/(bitmap.width*(right-x)),240/(bitmap.height*(bottom-y)));canvas.width=Math.round(bitmap.width*(right-x)*scale);canvas.height=Math.round(bitmap.height*(bottom-y)*scale);
   canvas.getContext('2d')!.drawImage(bitmap,bitmap.width*x,bitmap.height*y,bitmap.width*(right-x),bitmap.height*(bottom-y),0,0,canvas.width,canvas.height);
   phase='load';koreanWorker=await createWorker('kor',1,options);phase='read';await koreanWorker.setParameters({tessedit_pageseg_mode:PSM.SPARSE_TEXT});const status=await koreanWorker.recognize(canvas);original.push(status.data.text.trim());diagnostics.attempts.push({field:'ratio',source:adaptive.ratio?'adaptive':'fallback',text:status.data.text.trim()});Object.assign(item,maximumStatus(status.data.text));

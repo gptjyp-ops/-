@@ -36,7 +36,9 @@ export function findLandmarks(p:Pixels,kind:PhotoKind):{amount?:Box;info?:Box;pr
   const bars=components(p,area,(r,g,b)=>Math.min(r,g,b)>40&&Math.max(r,g,b)<185&&Math.max(r,g,b)-Math.min(r,g,b)<40)
    .filter(b=>b.width>.09*w&&b.height>.022*w&&b.height<.075*w&&b.width/b.height>2.3);
   bars.sort((a,b)=>a.y-b.y);result.amount=bars[0];
-  const circles=components(p,{x:.70*w,y:.43*h,width:.17*w,height:.44*h},(r,g,b)=>Math.max(r,g,b)<90,.60)
+  // Small captures lose dark edge pixels when scaled down. Keep the filled
+  // information icon, while excluding the much sparser notification rings.
+  const circles=components(p,{x:.70*w,y:.43*h,width:.17*w,height:.44*h},(r,g,b)=>Math.max(r,g,b)<90,.50)
    .filter(b=>b.width>.025*w&&b.width<.075*w&&b.height/b.width>.8&&b.height/b.width<1.25);
   circles.sort((a,b)=>b.y-a.y);result.info=circles[0];
   if(result.info){const info=result.info,cx=info.x+info.width/2,bottom=info.y+info.height;
